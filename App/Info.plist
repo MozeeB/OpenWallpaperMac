@@ -24,8 +24,6 @@
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
-	<key>LSUIElement</key>
-	<true/>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>OpenWallpaperMac listens to your Mac's audio output so audio-reactive wallpapers can move with your music. Audio never leaves your Mac.</string>
 	<key>NSHumanReadableCopyright</key>

@@ -37,7 +37,7 @@ cat <<EOF
 ### Install
 
 1. Download \`OpenWallpaperMac-$VERSION.dmg\` below and open it.
-2. Drag **OpenWallpaperMac** into **Applications**, then launch it. It lives in the menu bar.
+2. Drag **OpenWallpaperMac** into **Applications**, then launch it. It appears in the Dock and the menu bar.
 EOF
 if [[ "$SIGNED" != "--signed" ]]; then
   cat <<'EOF'

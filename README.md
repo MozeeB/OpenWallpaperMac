@@ -38,7 +38,7 @@ xcodebuild -project OpenWallpaperMac.xcodeproj -scheme OpenWallpaperMac -configu
 open build/DerivedData/Build/Products/Release/OpenWallpaperMac.app
 ```
 
-The app lives in the menu bar. Open **Library...**, click **+** to import files or folders, then **Set on All Displays**.
+The app opens its library window and appears in the Dock, with a quick-access menu in the menu bar. Click **+** to import files or folders, then **Set on All Displays**. Closing the window keeps wallpapers running; click the Dock icon to reopen it.
 
 ### Importing Wallpaper Engine projects
 

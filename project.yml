@@ -38,7 +38,6 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.utilities
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
-        LSUIElement: true
         NSHumanReadableCopyright: "MIT License. Not affiliated with Wallpaper Engine or Valve."
         NSAudioCaptureUsageDescription: "OpenWallpaperMac listens to your Mac's audio output so audio-reactive wallpapers can move with your music. Audio never leaves your Mac."
     entitlements:
