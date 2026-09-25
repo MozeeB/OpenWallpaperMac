@@ -45,6 +45,7 @@ let package = Package(
             ],
             swiftSettings: strictSettings
         ),
+        .target(name: "OWTestSupport", path: "Tests/Support"),
         .executableTarget(
             name: "owctl",
             dependencies: [
@@ -59,9 +60,12 @@ let package = Package(
         .testTarget(name: "OWAudioCaptureTests", dependencies: ["OWAudioCapture", "OWAudioAnalysis", "OWCore"]),
         .testTarget(name: "OWPowerTests", dependencies: ["OWPower", "OWCore"]),
         .testTarget(name: "OWDesktopTests", dependencies: ["OWDesktop", "OWCore"]),
-        .testTarget(name: "OWRenderingTests", dependencies: ["OWRendering", "OWCore", "OWFormats"]),
+        .testTarget(name: "OWRenderingTests", dependencies: ["OWRendering", "OWCore", "OWFormats", "OWTestSupport"]),
         .testTarget(name: "OWSceneTests", dependencies: ["OWScene", "OWRendering", "OWFormats", "OWCore"]),
-        .testTarget(name: "OWLibraryTests", dependencies: ["OWLibrary", "OWFormats", "OWCore"]),
-        .testTarget(name: "OWAppFeatureTests", dependencies: ["OWAppFeature", "OWPower", "OWCore"]),
+        .testTarget(name: "OWLibraryTests", dependencies: ["OWLibrary", "OWFormats", "OWCore", "OWTestSupport"]),
+        .testTarget(
+            name: "OWAppFeatureTests",
+            dependencies: ["OWAppFeature", "OWPower", "OWCore", "OWFormats", "OWRendering", "OWLibrary", "OWTestSupport"]
+        ),
     ]
 )
