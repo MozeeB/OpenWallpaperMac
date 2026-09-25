@@ -56,6 +56,7 @@ let package = Package(
         .testTarget(name: "OWCoreTests", dependencies: ["OWCore"]),
         .testTarget(name: "OWFormatsTests", dependencies: ["OWFormats", "OWCore"]),
         .testTarget(name: "OWAudioAnalysisTests", dependencies: ["OWAudioAnalysis"]),
+        .testTarget(name: "OWAudioCaptureTests", dependencies: ["OWAudioCapture", "OWAudioAnalysis", "OWCore"]),
         .testTarget(name: "OWPowerTests", dependencies: ["OWPower", "OWCore"]),
         .testTarget(name: "OWDesktopTests", dependencies: ["OWDesktop", "OWCore"]),
         .testTarget(name: "OWRenderingTests", dependencies: ["OWRendering", "OWCore", "OWFormats"]),
