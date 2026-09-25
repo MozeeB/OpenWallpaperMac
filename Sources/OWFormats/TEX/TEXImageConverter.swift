@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import ImageIO
+import OWCore
 import UniformTypeIdentifiers
 
 /// Tightly packed 8-bit RGBA pixels.
@@ -102,8 +103,16 @@ public enum TEXImageConverter {
     }
 
     static func decodeEncoded(_ data: Data) throws(TEXError) -> RGBABitmap {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { throw .imageDecodeFailed }
+        // Read the embedded image's own dimensions without decoding pixels (image-bomb guard).
+        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] ?? [:]
+        let width = (properties[kCGImagePropertyPixelWidth] as? Int) ?? 0
+        let height = (properties[kCGImagePropertyPixelHeight] as? Int) ?? 0
+        guard width > 0, height > 0 else { throw .imageDecodeFailed }
+        guard width <= Limits.maxTextureDimension, height <= Limits.maxTextureDimension else {
+            throw .invalidDimensions(width: width, height: height)
+        }
         guard
-            let source = CGImageSourceCreateWithData(data as CFData, nil),
             let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
             let bitmap = RGBABitmap.from(cgImage: image)
         else { throw .imageDecodeFailed }

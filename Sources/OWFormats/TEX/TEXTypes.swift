@@ -11,6 +11,7 @@ public enum TEXError: Error, Equatable, Sendable {
     case payloadTooSmall(expected: Int, actual: Int)
     case truncated(BinaryReaderError)
     case imageDecodeFailed
+    case textureTooLarge(limit: Int)
     case noImages
 }
 

@@ -131,6 +131,29 @@ struct TEXTests {
         #expect(throws: TEXError.self) { try TEXParser.parse(Data(huge)) }
     }
 
+    @Test("per-texture byte budget stops many-mipmap decompression bombs")
+    func budget() throws {
+        var options = TEXWriter.Options()
+        options.compress = true
+        let pixels = Data(count: 64 * 64 * 4)
+        let data = TEXWriter.build(format: .rgba8888, width: 64, height: 64, pixels: pixels, options: options)
+        #expect(throws: TEXError.textureTooLarge(limit: 1000)) { try TEXParser.parse(data, byteBudget: 1000) }
+        #expect(try TEXParser.parse(data, byteBudget: pixels.count).primaryMipmap?.data.count == pixels.count)
+    }
+
+    @Test("embedded images larger than the texture limit are rejected before decoding")
+    func imageBomb() throws {
+        let wide = RGBABitmap(width: Limits.maxTextureDimension + 1, height: 1,
+                              pixels: Data(count: (Limits.maxTextureDimension + 1) * 4))
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("owbomb-\(UUID()).png")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try TEXImageConverter.writePNG(wide, to: url)
+        let texture = try TEXParser.parse(TEXWriter.buildEncoded(imageData: try Data(contentsOf: url), width: 1, height: 1))
+        #expect(throws: TEXError.invalidDimensions(width: Limits.maxTextureDimension + 1, height: 1)) {
+            try TEXImageConverter.bitmap(from: texture)
+        }
+    }
+
     @Test("bitmap helpers crop and round-trip CGImage")
     func bitmapHelpers() throws {
         let bitmap = RGBABitmap(width: 2, height: 2, pixels: Self.pixels2x2)

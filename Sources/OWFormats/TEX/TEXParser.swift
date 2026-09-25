@@ -8,7 +8,8 @@ import OWCore
 public enum TEXParser {
     static let magicLimit = 16
 
-    public static func parse(_ data: Data) throws(TEXError) -> TEXTexture {
+    /// - Parameter byteBudget: maximum total decoded bytes across all images and mipmaps.
+    public static func parse(_ data: Data, byteBudget: Int = Limits.maxBytesPerTexture) throws(TEXError) -> TEXTexture {
         var reader = BinaryReader(data)
         do {
             try expectMagic(&reader, prefix: "TEXV")
@@ -16,7 +17,8 @@ public enum TEXParser {
             let header = try readHeader(&reader)
             let version = try containerVersion(try reader.nullTerminatedString(limit: magicLimit))
             let container = try readContainerHeader(&reader, version: version, format: header.format)
-            let images = try readImages(&reader, version: version, container: container)
+            var budget = byteBudget
+            let images = try readImages(&reader, version: version, container: container, budget: &budget)
             let frames = header.flags.contains(.isGif) ? try readFrames(&reader) : []
             return TEXTexture(
                 header: header, containerVersion: version, payload: container.payload,
@@ -79,7 +81,7 @@ public enum TEXParser {
     }
 
     private static func readImages(
-        _ reader: inout BinaryReader, version: Int, container: ContainerHeader
+        _ reader: inout BinaryReader, version: Int, container: ContainerHeader, budget: inout Int
     ) throws -> [TEXImage] {
         try (0 ..< container.imageCount).map { _ in
             let mipCount = Int(try reader.int32())
@@ -87,13 +89,15 @@ public enum TEXParser {
                 throw TEXError.tooManyMipmaps(mipCount)
             }
             let mipmaps = try (0 ..< mipCount).map { _ in
-                try readMipmap(&reader, version: version, payload: container.payload)
+                try readMipmap(&reader, version: version, payload: container.payload, budget: &budget)
             }
             return TEXImage(mipmaps: mipmaps)
         }
     }
 
-    private static func readMipmap(_ reader: inout BinaryReader, version: Int, payload: TEXPayload) throws -> TEXMipmap {
+    private static func readMipmap(
+        _ reader: inout BinaryReader, version: Int, payload: TEXPayload, budget: inout Int
+    ) throws -> TEXMipmap {
         if version == 4 {
             // Version 4 prefixes each mipmap with two markers, a condition string and a third marker.
             _ = try reader.int32()
@@ -113,6 +117,10 @@ public enum TEXParser {
             decompressedSize = try reader.length(limit: Limits.maxDecompressedBytes)
         }
         let byteCount = try reader.length(limit: Limits.maxDecompressedBytes)
+        // Charge the output size against the per-texture budget *before* allocating it.
+        let outputSize = compressed ? decompressedSize : byteCount
+        guard outputSize <= budget else { throw TEXError.textureTooLarge(limit: budget) }
+        budget -= outputSize
         let raw = try reader.bytes(byteCount)
         let bytes = compressed ? try LZ4Block.decompress(raw, expectedSize: decompressedSize) : raw
         if case .raw(let format) = payload {

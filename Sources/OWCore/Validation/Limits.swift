@@ -11,6 +11,8 @@ public enum Limits {
     public static let maxTextureImages = 4_096
     public static let maxTextureMipmaps = 16
     public static let maxDecompressedBytes = 512 * 1024 * 1024
+    /// Total across every image and mipmap of one texture (defeats many-small-bombs files).
+    public static let maxBytesPerTexture = 768 * 1024 * 1024
     public static let maxSceneObjects = 4_096
     public static let maxParticles = 20_000
     public static let maxProperties = 512
