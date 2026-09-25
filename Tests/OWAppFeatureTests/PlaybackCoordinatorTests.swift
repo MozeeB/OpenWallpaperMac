@@ -54,7 +54,7 @@ struct PlaybackCoordinatorTests {
         let renderer = h.factory.created.first
         #expect(renderer?.type == .video)
         #expect(await eventually { renderer?.loaded != nil })
-        #expect(await eventually { renderer?.playback.last == .playing(fps: 30) })
+        #expect(await eventually { renderer?.playback.last == .playing(fps: 60) })
         #expect(h.coordinator.displays.windows[a]?.contentView?.subviews.first === renderer?.hostView)
         #expect(h.coordinator.activeWallpaper(for: a) == wallpaper.id)
         #expect(await eventually { h.setter.applied.count == 1 }, "poster synced after load")
@@ -74,7 +74,7 @@ struct PlaybackCoordinatorTests {
         h.coordinator.setUserPaused(true)
         #expect(renderer.playback.last == .paused)
         h.coordinator.setUserPaused(false)
-        #expect(renderer.playback.last == .playing(fps: 30))
+        #expect(renderer.playback.last == .playing(fps: 60))
 
         h.windows.windows = [WindowInfo(ownerPID: 99, layer: 0, bounds: CGRect(x: 0, y: 0, width: 320, height: 200))]
         h.coordinator.power.refreshFullscreen()

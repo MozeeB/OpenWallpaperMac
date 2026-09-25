@@ -124,7 +124,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
 
     public init(
         pauseRules: PauseRules = .default,
-        frameRateCap: FrameRateCap = .fps30,
+        frameRateCap: FrameRateCap = .fps60,
         batteryFrameRateCap: FrameRateCap = .fps15,
         windowLevelOffset: Int = -1,
         audioEnabled: Bool = false,

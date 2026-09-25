@@ -5,7 +5,7 @@
 - **Render only what is visible.** Per-display pause/suspend from `PowerPolicy` (fullscreen apps,
   occlusion, battery, Low Power Mode, thermal, lock, sleep). Paused = display link stopped;
   suspended = renderer torn down (decoder/GPU memory freed).
-- **Frame pacing.** Default 30 fps, 15 fps on battery, thermal caps (fair → 30, serious → 15,
+- **Frame pacing.** Default 60 fps (30 or 15 selectable), 15 fps on battery, thermal caps (fair → 30, serious → 15,
   critical → suspend). Static scenes render one frame and stop.
 - **Decode once.** One `AVQueuePlayer` per video file shared across displays.
 - **Cheap compositing.** Opaque, shadowless windows; ≤ 2 drawables; optional render scale for GPU
@@ -42,7 +42,7 @@ Controlled A/B on the main display (app CPU + WindowServer increase):
 | Video-only composition (audio never processed) | 3.4% | ~+9% | ~12% |
 | Video-only + 30 fps output cap (**shipped**) | 5.2% | ~+3% | **~8%** |
 
-The frame-rate cap applies to video too (30 fps default, 15 on battery; choose 15/30/60 from the menu
+The frame-rate cap applies to video too (60 fps default, 15 on battery; choose 15/30/60 from the menu
 bar or Settings). Clips at or below the cap play natively with no composition overhead. In the app on two
 displays this clip uses ~7.6% app CPU capped to 30 fps and **~6.1% at native 60 fps** (frame dropping has
 its own cost); WindowServer load was similar in both runs.

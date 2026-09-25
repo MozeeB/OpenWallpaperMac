@@ -14,7 +14,7 @@ struct PowerPolicyTests {
     @Test("idle machine plays at the user cap")
     func idle() {
         let result = PowerPolicy.decide(.idle, settings: settings, displays: [main, side])
-        #expect(result == [main: .playing(fps: 30), side: .playing(fps: 30)])
+        #expect(result == [main: .playing(fps: 60), side: .playing(fps: 60)])
     }
 
     @Test("global conditions map through rules", arguments: [
@@ -36,7 +36,7 @@ struct PowerPolicyTests {
         let snapshot = PowerSnapshot(perDisplay: [main: DisplayPowerState(fullscreenApp: true), side: DisplayPowerState()])
         let result = PowerPolicy.decide(snapshot, settings: settings, displays: [main, side])
         #expect(result[main] == .paused)
-        #expect(result[side] == .playing(fps: 30))
+        #expect(result[side] == .playing(fps: 60))
         let occluded = PowerSnapshot(perDisplay: [side: DisplayPowerState(occluded: true)])
         #expect(PowerPolicy.decide(occluded, settings: settings, displays: [side])[side] == .paused)
     }
@@ -55,7 +55,7 @@ struct PowerPolicyTests {
             perDisplay: [main: DisplayPowerState(occluded: true, fullscreenApp: true)],
             lowPowerMode: true, screenLocked: true, screensAsleep: true
         )
-        #expect(PowerPolicy.decide(busy, settings: settings.with(pauseRules: ignoreAll), displays: [main])[main] == .playing(fps: 30))
+        #expect(PowerPolicy.decide(busy, settings: settings.with(pauseRules: ignoreAll), displays: [main])[main] == .playing(fps: 60))
     }
 
     @Test("snapshot copy helper and thermal mapping")

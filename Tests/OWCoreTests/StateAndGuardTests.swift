@@ -33,9 +33,9 @@ struct StateTests {
         #expect(AppSettings(windowLevelOffset: -10).windowLevelOffset == -3)
         #expect(AppSettings(windowLevelOffset: 4).windowLevelOffset == 0)
         let base = AppSettings.default
-        let changed = base.with(frameRateCap: .fps60, audioEnabled: true)
-        #expect(base.frameRateCap == .fps30)
-        #expect(changed.frameRateCap == .fps60)
+        let changed = base.with(frameRateCap: .fps30, audioEnabled: true)
+        #expect(base.frameRateCap == .fps60, "60 fps is the default")
+        #expect(changed.frameRateCap == .fps30)
         #expect(changed.audioEnabled)
         #expect(changed.pauseRules == base.pauseRules)
         #expect(PauseAction.suspend > PauseAction.pause)
@@ -101,7 +101,7 @@ struct SettingsMigrationTests {
     func tolerant() throws {
         let settings = try JSONDecoder().decode(AppSettings.self, from: Data(#"{"audioEnabled":true,"pauseRules":{"onBattery":"suspend"}}"#.utf8))
         #expect(settings.audioEnabled)
-        #expect(settings.frameRateCap == .fps30)
+        #expect(settings.frameRateCap == .fps60)
         #expect(settings.renderScale == 1)
         #expect(settings.pauseRules.onBattery == .suspend)
         #expect(settings.pauseRules.fullscreenApp == .pause)
