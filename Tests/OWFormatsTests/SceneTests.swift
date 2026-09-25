@@ -140,7 +140,10 @@ struct SceneLoadingTests {
     @Test("missing references are skipped; nothing renderable means preview only")
     func missing() throws {
         let files: [(String, Data)] = [
-            ("scene.json", Data(#"{"objects":[{"name":"a","image":"models/none.json"},{"name":"p","particle":"particles/none.json"},{"name":"s","sound":["x"]}]}"#.utf8)),
+            ("scene.json", Data(#"""
+            {"objects":[{"name":"a","image":"models/none.json"},
+                        {"name":"p","particle":"particles/none.json"},{"name":"s","sound":["x"]}]}
+            """#.utf8)),
         ]
         let archive = try PKGParser.parse(PKGWriter.build(files: files))
         let scene = try SceneLoader.load(entry: try SanitizedPath("scene.json"), from: PKGAssetSource(archive: archive))

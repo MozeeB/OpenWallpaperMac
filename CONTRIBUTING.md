@@ -5,7 +5,7 @@
 3. Before opening a PR:
 
 ```bash
-swiftlint lint --strict Sources App
+swiftlint lint --strict
 ```
 
 ```bash

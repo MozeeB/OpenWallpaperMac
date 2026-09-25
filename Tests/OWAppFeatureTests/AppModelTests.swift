@@ -136,7 +136,11 @@ struct AppModelTests {
             #expect(!ImportErrorText.describe(.project(error)).isEmpty)
         }
         #expect(RenderErrorText.describe(.compile(line: 3, message: "bad")) == "shader error on line 3: bad")
-        for error in [RenderError.unsupported(.scene), .assetMissing("x"), .invalidAsset("x"), .metalUnavailable, .gpuHang, .snapshotFailed, .notLoaded, .web("x")] {
+        let renderErrors: [RenderError] = [
+            .unsupported(.scene), .assetMissing("x"), .invalidAsset("x"), .metalUnavailable,
+            .gpuHang, .snapshotFailed, .notLoaded, .web("x"),
+        ]
+        for error in renderErrors {
             #expect(!RenderErrorText.describe(error).isEmpty)
         }
     }

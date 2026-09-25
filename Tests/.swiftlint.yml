@@ -1,0 +1,8 @@
+# Tests may force-unwrap known-good fixtures and use longer expectation lines.
+disabled_rules:
+  - force_unwrapping
+  - force_try
+  - function_body_length
+line_length:
+  warning: 160
+  error: 200
