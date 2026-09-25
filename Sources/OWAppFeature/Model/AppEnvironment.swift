@@ -76,7 +76,9 @@ public enum AppEnvironment {
             let assignments = library.first { $0.title == assign }.map { sample in
                 SystemScreenProvider().currentScreens().map { DisplayAssignment(display: $0.key, wallpaper: sample.id) }
             } ?? []
-            let state = PersistedState.empty.with(settings: .default.with(posterSync: false), assignments: assignments, library: library)
+            let fps = argument(after: "-UITestFPS").flatMap(Int.init).flatMap(FrameRateCap.init(rawValue:))
+            let settings = AppSettings.default.with(frameRateCap: fps, posterSync: false)
+            let state = PersistedState.empty.with(settings: settings, assignments: assignments, library: library)
             let data = try JSONEncoder().encode(state)
             try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
             try data.write(to: store.fileURL)

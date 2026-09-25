@@ -15,6 +15,7 @@ Open-source live wallpapers for macOS: video, web pages, Metal shaders, audio-re
 | **Shaders** | Shadertoy-style Metal fragment shaders with user properties and audio bands ([guide](docs/shaders.md)) |
 | **Scenes** | Wallpaper Engine `scene.pkg` import: image layers, blend modes, camera parallax, native effects (scroll, shake, water ripple/waves, pulse, tint, opacity, blur), particles; unsupported features fall back to the project's preview |
 | **Audio-reactive** | System audio via a Core Audio process tap (macOS 14.4+, audio-only permission) |
+| **Frame rate** | 15 / 30 / 60 fps from the menu bar; 60 fps videos play natively; lower caps on battery and when the Mac is hot |
 | **Auto-pause** | Fullscreen/maximised apps, occlusion, battery, Low Power Mode, thermal pressure, lock, sleep — each configurable (keep playing / pause / suspend) |
 | **Native feel** | Sits below desktop icons on every Space; a still frame is synced to the system wallpaper so Mission Control, the menu bar and the lock screen match; the original wallpaper is restored on quit |
 

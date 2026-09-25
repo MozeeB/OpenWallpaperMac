@@ -30,6 +30,13 @@ public struct MenuBarContent: View {
             }
         }
         Divider()
+        Picker("Frame Rate", selection: Binding(
+            get: { model.settings.frameRateCap },
+            set: { model.updateSettings(model.settings.with(frameRateCap: $0)) }
+        )) {
+            ForEach(FrameRateCap.allCases, id: \.self) { Text("\($0.rawValue) fps").tag($0) }
+        }
+        .accessibilityIdentifier("menu.frameRate")
         Button(model.isPaused ? "Resume Wallpapers" : "Pause Wallpapers") { model.togglePause() }
             .keyboardShortcut("p")
             .accessibilityIdentifier("menu.togglePause")

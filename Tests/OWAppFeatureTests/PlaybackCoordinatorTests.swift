@@ -81,7 +81,13 @@ struct PlaybackCoordinatorTests {
         #expect(renderer.playback.last == .paused)
         #expect(h.coordinator.playbackState(for: a) == .paused)
 
+        h.coordinator.update(library: [wallpaper], assignments: [DisplayAssignment(display: a, wallpaper: wallpaper.id)],
+                             settings: .default.with(frameRateCap: .fps60))
+        #expect(renderer.playback.last == .paused, "fullscreen app still pauses at 60 fps")
         h.windows.windows = []
+        h.coordinator.power.refreshFullscreen()
+        #expect(renderer.playback.last == .playing(fps: 60))
+        h.coordinator.update(library: [wallpaper], assignments: [DisplayAssignment(display: a, wallpaper: wallpaper.id)], settings: .default)
         h.power.isOnBattery = true
         h.coordinator.power.refreshAll()
         #expect(renderer.playback.last == .playing(fps: 15))

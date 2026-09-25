@@ -3,7 +3,7 @@ import Foundation
 
 /// Writes a tiny H.264 clip so video tests never depend on bundled media.
 public enum ClipFactory {
-    public static func makeClip(at url: URL, frames: Int = 15, size: Int = 64) async throws {
+    public static func makeClip(at url: URL, frames: Int = 15, size: Int = 64, fps: Int32 = 30) async throws {
         let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
         let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
             AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: size, AVVideoHeightKey: size,
@@ -23,7 +23,7 @@ public enum ClipFactory {
             CVPixelBufferLockBaseAddress(buffer, [])
             memset(CVPixelBufferGetBaseAddress(buffer), Int32(index * 10), CVPixelBufferGetDataSize(buffer))
             CVPixelBufferUnlockBaseAddress(buffer, [])
-            adaptor.append(buffer, withPresentationTime: CMTime(value: CMTimeValue(index), timescale: 30))
+            adaptor.append(buffer, withPresentationTime: CMTime(value: CMTimeValue(index), timescale: fps))
         }
         input.markAsFinished()
         await writer.finishWriting()

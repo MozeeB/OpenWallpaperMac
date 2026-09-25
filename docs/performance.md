@@ -42,9 +42,10 @@ Controlled A/B on the main display (app CPU + WindowServer increase):
 | Video-only composition (audio never processed) | 3.4% | ~+9% | ~12% |
 | Video-only + 30 fps output cap (**shipped**) | 5.2% | ~+3% | **~8%** |
 
-The frame-rate cap now applies to video too (30 fps default, 15 on battery); clips at or below the cap
-play with no composition overhead. In the app on two displays this clip uses ~7% app CPU (one shared
-decoder).
+The frame-rate cap applies to video too (30 fps default, 15 on battery; choose 15/30/60 from the menu
+bar or Settings). Clips at or below the cap play natively with no composition overhead. In the app on two
+displays this clip uses ~7.6% app CPU capped to 30 fps and **~6.1% at native 60 fps** (frame dropping has
+its own cost); WindowServer load was similar in both runs.
 
 ## Against the budgets
 

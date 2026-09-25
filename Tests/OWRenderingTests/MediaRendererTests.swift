@@ -103,6 +103,31 @@ struct MediaRendererTests {
         }
     }
 
+    @Test("60 fps sources play at native 60 fps when the cap is 60")
+    func sixtyFPS() async throws {
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let clip = folder.appendingPathComponent("clip60.mp4")
+        try await ClipFactory.makeClip(at: clip, frames: 60, fps: 60)
+        let prepared = try await PreparedVideo.prepare(url: clip)
+        #expect(prepared.sourceFPS == 60)
+        #expect(prepared.effectiveFPS(cap: 60) == 60)
+        #expect(prepared.composition(cap: 60) == nil, "native 60 fps: no capping composition")
+        #expect(prepared.composition(cap: 30)?.frameDuration == CMTime(value: 1, timescale: 30))
+
+        let pool = VideoPlayerPool()
+        let renderer = VideoRenderer(pool: pool)
+        try await renderer.load(try wallpaper(.video, folder: folder, entry: "clip60.mp4"), context: context)
+        renderer.setPlayback(.playing(fps: 60))
+        #expect(pool.outputFPS(for: clip) == 60)
+        renderer.setPlayback(.playing(fps: 30))
+        #expect(pool.outputFPS(for: clip) == 30)
+        renderer.setPlayback(.playing(fps: 60))
+        #expect(pool.outputFPS(for: clip) == 60)
+        #expect(pool.isPlaying(clip))
+        renderer.teardown()
+    }
+
     @Test("video renderer rejects missing and invalid files")
     func invalidVideo() async throws {
         defer { try? FileManager.default.removeItem(at: folder) }
