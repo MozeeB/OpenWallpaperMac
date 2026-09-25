@@ -9,6 +9,8 @@ public final class VideoRenderer: WallpaperRenderer {
     public var onFailure: ((RenderError) -> Void)?
     public let hostView: NSView
     public private(set) var url: URL?
+    private var prepared: PreparedVideo?
+    private var fpsCap = 30
     private let pool: VideoPlayerPool
     private let playerLayer = AVPlayerLayer()
     private var attached = false
@@ -29,8 +31,10 @@ public final class VideoRenderer: WallpaperRenderer {
         guard let url = wallpaper.entryFileURL else { throw .assetMissing(wallpaper.wallpaper.entry.string) }
         let asset = AVURLAsset(url: url)
         let playable = (try? await asset.load(.isPlayable)) ?? false
-        let tracks = (try? await asset.loadTracks(withMediaType: .video)) ?? []
-        guard playable, !tracks.isEmpty else { throw .invalidAsset("not a playable video: \(url.lastPathComponent)") }
+        guard playable, let prepared = try? await PreparedVideo.prepare(url: url) else {
+            throw .invalidAsset("not a playable video: \(url.lastPathComponent)")
+        }
+        self.prepared = prepared
         self.url = url
         playerLayer.videoGravity = VideoRenderer.gravity(context.fill)
         playerLayer.frame = hostView.bounds
@@ -46,8 +50,8 @@ public final class VideoRenderer: WallpaperRenderer {
     }
 
     private func attach() {
-        guard let url, !attached else { return }
-        playerLayer.player = pool.acquire(url, owner: self)
+        guard let url, let prepared, !attached else { return }
+        playerLayer.player = pool.acquire(url, prepared: prepared, cap: fpsCap, owner: self)
         attached = true
     }
 
@@ -61,10 +65,11 @@ public final class VideoRenderer: WallpaperRenderer {
     public func setPlayback(_ state: PlaybackState) {
         guard let url else { return }
         switch state {
-        case .playing:
+        case .playing(let fps):
+            fpsCap = fps
             attach()
             playerLayer.frame = hostView.bounds
-            pool.setPlaying(true, url: url, owner: self)
+            pool.setPlaying(true, fps: fps, url: url, owner: self)
         case .paused:
             pool.setPlaying(false, url: url, owner: self)
         case .suspended:
@@ -101,5 +106,6 @@ public final class VideoRenderer: WallpaperRenderer {
         detach()
         playerLayer.removeFromSuperlayer()
         url = nil
+        prepared = nil
     }
 }

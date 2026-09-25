@@ -64,6 +64,11 @@ struct MediaRendererTests {
 
         first.setPlayback(.playing(fps: 30))
         #expect(pool.isPlaying(clip))
+        #expect(pool.outputFPS(for: clip) == 30, "30 fps source stays at its native rate")
+        first.setPlayback(.playing(fps: 15))
+        #expect(pool.outputFPS(for: clip) == 15, "battery cap lowers the output rate")
+        #expect(pool.isPlaying(clip))
+        first.setPlayback(.playing(fps: 30))
         second.setPlayback(.paused)
         #expect(pool.isPlaying(clip), "one owner still wants playback")
         first.setPlayback(.paused)
@@ -78,6 +83,24 @@ struct MediaRendererTests {
         first.teardown()
         #expect(pool.activeDecoders == 0)
         #expect(VideoRenderer.gravity(.stretch) == .resize)
+    }
+
+    @Test("prepared videos drop audio and cap the frame rate")
+    func prepared() async throws {
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let clip = folder.appendingPathComponent("clip.mp4")
+        try await ClipFactory.makeClip(at: clip)
+        let prepared = try await PreparedVideo.prepare(url: clip)
+        #expect(try await prepared.asset.loadTracks(withMediaType: .audio).isEmpty)
+        #expect(prepared.sourceFPS == 30)
+        #expect(prepared.effectiveFPS(cap: 60) == 30)
+        #expect(prepared.effectiveFPS(cap: 15) == 15)
+        #expect(prepared.composition(cap: 60) == nil, "no composition overhead when under the cap")
+        #expect(prepared.composition(cap: 15)?.frameDuration == CMTime(value: 1, timescale: 15))
+        await #expect(throws: (any Error).self) {
+            _ = try await PreparedVideo.prepare(url: folder.appendingPathComponent("missing.mp4"))
+        }
     }
 
     @Test("video renderer rejects missing and invalid files")

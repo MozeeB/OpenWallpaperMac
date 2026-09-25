@@ -32,6 +32,20 @@ Offscreen `owctl bench` at 3840×2160 (rendering cost only, no presentation):
 | Synthetic scene | 0.36 | 1.1% |
 | 4K HEVC decode via AVAssetReader | 1.28 | 3.8% (copies frames; AVPlayer path is cheaper) |
 
+### Real-world clip: 4K H.264, 60 fps, 24.7 Mbit/s, AAC audio (15 s loop)
+
+Controlled A/B on the main display (app CPU + WindowServer increase):
+
+| Strategy | App | WindowServer Δ | Total |
+|---|---|---|---|
+| Play file as-is | 4.6% | ~+23% | ~28% |
+| Video-only composition (audio never processed) | 3.4% | ~+9% | ~12% |
+| Video-only + 30 fps output cap (**shipped**) | 5.2% | ~+3% | **~8%** |
+
+The frame-rate cap now applies to video too (30 fps default, 15 on battery); clips at or below the cap
+play with no composition overhead. In the app on two displays this clip uses ~7% app CPU (one shared
+decoder).
+
 ## Against the budgets
 
 | Budget (per display) | Target | Result |
