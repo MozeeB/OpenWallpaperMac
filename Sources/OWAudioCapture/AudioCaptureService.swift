@@ -13,7 +13,7 @@ public protocol AudioSpectrumSource: AnyObject {
     func stop()
 }
 
-/// System-audio capture → 30 Hz spectra, rebuilt when the default output device changes.
+/// System-audio capture -> 30 Hz spectra, rebuilt when the default output device changes.
 ///
 /// Only runs while at least one audio-reactive wallpaper is playing (the app layer decides).
 @MainActor

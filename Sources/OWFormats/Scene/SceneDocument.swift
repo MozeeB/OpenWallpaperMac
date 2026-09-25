@@ -97,7 +97,7 @@ public struct SceneParticleLayer: Equatable, Sendable {
 public enum SceneObject: Equatable, Sendable {
     case image(SceneImageLayer)
     case particle(SceneParticleLayer)
-    /// Objects this app does not render (sounds, lights, text, 3D models…).
+    /// Objects this app does not render (sounds, lights, text, 3D models...).
     case unsupported(name: String, kind: String)
 }
 
@@ -119,7 +119,7 @@ public struct ModelDocument: Equatable, Sendable {
 public struct MaterialDocument: Equatable, Sendable {
     public let shader: String
     public let blending: Blending
-    /// Texture names as written (`"bg"`, `"_rt_…"`, or empty for unused slots).
+    /// Texture names as written (`"bg"`, `"_rt_..."`, or empty for unused slots).
     public let textures: [String]
 
     /// The colour texture path, if it is a real file (`materials/<name>.tex`).

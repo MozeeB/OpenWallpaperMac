@@ -3,7 +3,7 @@ import Foundation
 /// Original, MIT-licensed sample content bundled with the app.
 public enum SampleContent {
     public static let plasmaShader = """
-    // Plasma — sample OpenWallpaperMac shader (MIT). Reacts to audio when enabled.
+    // Plasma: sample OpenWallpaperMac shader (MIT). Reacts to audio when enabled.
     float4 mainImage(float2 fragCoord, constant OWUniforms& u) {
         float2 uv = fragCoord / u.iResolution.xy;
         float t = u.iTime * prop_speed.x;

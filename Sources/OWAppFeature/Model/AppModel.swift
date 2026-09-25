@@ -210,7 +210,7 @@ public final class AppModel {
         case .audioSilent:
             post(.warning, """
             No system audio detected. If visuals should react to sound, allow OpenWallpaperMac under \
-            System Settings › Privacy & Security › Screen & System Audio Recording.
+            System Settings > Privacy & Security > Screen & System Audio Recording.
             """)
         case .audioUnavailable(let reason):
             post(.warning, "Audio capture unavailable: \(reason)")

@@ -3,7 +3,7 @@ import OWCore
 import OWFormats
 import OWRendering
 
-/// Renders Wallpaper Engine–style scenes natively in Metal.
+/// Renders Wallpaper Engine-style scenes natively in Metal.
 @MainActor
 public final class SceneRenderer: WallpaperRenderer {
     public var onFailure: ((RenderError) -> Void)? {
@@ -41,7 +41,7 @@ public final class SceneRenderer: WallpaperRenderer {
         host.configure(renderScale: renderContext.renderScale)
     }
 
-    /// Cursor position relative to this window, normalised to 0…1 with y up.
+    /// Cursor position relative to this window, normalised to 0...1 with y up.
     func cursorPosition() -> SIMD2<Float>? {
         guard let frame = hostView.window?.frame, frame.width > 0, frame.height > 0 else { return nil }
         let location = NSEvent.mouseLocation

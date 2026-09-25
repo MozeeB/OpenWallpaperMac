@@ -26,22 +26,22 @@ section() {
 
 if [[ "$VERSION" == "HEAD" ]]; then echo "## Unreleased"; else echo "## OpenWallpaperMac $VERSION"; fi
 echo
-section "✨ Features" "feat"
-section "🐛 Fixes" "fix"
-section "⚡ Performance" "perf"
-section "♻️ Refactoring" "refactor"
-section "📚 Documentation" "docs"
-section "🔧 Maintenance" "chore|ci|test|build"
+section "Features" "feat"
+section "Fixes" "fix"
+section "Performance" "perf"
+section "Refactoring" "refactor"
+section "Documentation" "docs"
+section "Maintenance" "chore|ci|test|build"
 
 cat <<EOF
 ### Install
 
 1. Download \`OpenWallpaperMac-$VERSION.dmg\` below and open it.
-2. Drag **OpenWallpaperMac** into **Applications**, then launch it — it lives in the menu bar (✨).
+2. Drag **OpenWallpaperMac** into **Applications**, then launch it. It lives in the menu bar.
 EOF
 if [[ "$SIGNED" != "--signed" ]]; then
   cat <<'EOF'
-3. This build is not notarized. On first launch macOS will block it: open **System Settings › Privacy &
+3. This build is not notarized. On first launch macOS will block it: open **System Settings > Privacy &
    Security** and click **Open Anyway** (or run `xattr -dr com.apple.quarantine /Applications/OpenWallpaperMac.app`).
 EOF
 fi

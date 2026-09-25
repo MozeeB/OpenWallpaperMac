@@ -1,4 +1,4 @@
-# ADR 0001 — Native Swift, SwiftPM modules, thin app shell
+# ADR 0001: Native Swift, SwiftPM modules, thin app shell
 
 **Status:** accepted
 

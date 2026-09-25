@@ -1,7 +1,7 @@
 # OpenWallpaperMac
 
 Open-source live wallpapers for macOS: video, web pages, Metal shaders, audio-reactive visuals, and
-**imported Wallpaper Engine projects** — built natively in Swift, with battery-respecting auto-pause.
+**imported Wallpaper Engine projects**, built natively in Swift with battery-respecting auto-pause.
 
 > Not affiliated with Wallpaper Engine or Valve. Wallpaper Engine is Windows-only; OpenWallpaperMac is an
 > independent, clean-room MIT implementation that can read projects you already own.
@@ -16,7 +16,7 @@ Open-source live wallpapers for macOS: video, web pages, Metal shaders, audio-re
 | **Scenes** | Wallpaper Engine `scene.pkg` import: image layers, blend modes, camera parallax, native effects (scroll, shake, water ripple/waves, pulse, tint, opacity, blur), particles; unsupported features fall back to the project's preview |
 | **Audio-reactive** | System audio via a Core Audio process tap (macOS 14.4+, audio-only permission) |
 | **Frame rate** | 15 / 30 / 60 fps from the menu bar; 60 fps videos play natively; lower caps on battery and when the Mac is hot |
-| **Auto-pause** | Fullscreen/maximised apps, occlusion, battery, Low Power Mode, thermal pressure, lock, sleep — each configurable (keep playing / pause / suspend) |
+| **Auto-pause** | Fullscreen/maximised apps, occlusion, battery, Low Power Mode, thermal pressure, lock, sleep; each one configurable (keep playing / pause / suspend) |
 | **Native feel** | Sits below desktop icons on every Space; a still frame is synced to the system wallpaper so Mission Control, the menu bar and the lock screen match; the original wallpaper is restored on quit |
 
 ## Requirements
@@ -38,14 +38,14 @@ xcodebuild -project OpenWallpaperMac.xcodeproj -scheme OpenWallpaperMac -configu
 open build/DerivedData/Build/Products/Release/OpenWallpaperMac.app
 ```
 
-The app lives in the menu bar. Open **Library…**, click **+** to import files or folders, then **Set on All Displays**.
+The app lives in the menu bar. Open **Library...**, click **+** to import files or folders, then **Set on All Displays**.
 
 ### Importing Wallpaper Engine projects
 
 Point the importer at a project folder (the one containing `project.json`, usually
 `steamapps/workshop/content/431960/<id>`) copied from a PC, or use **Scan Steam Library** if your Steam
 library is on this Mac. Nothing is downloaded; projects are referenced in place. Each scene gets a support
-badge — *full*, *partial* (some effects skipped) or *preview only*.
+badge: *full*, *partial* (some effects skipped) or *preview only*.
 
 ## Releases
 
@@ -60,7 +60,7 @@ creates the GitHub Release with the DMG and its SHA-256 attached:
 git tag v0.2.0 && git push origin v0.2.0
 ```
 
-Build the same DMG locally (ad-hoc signed; add `DEVELOPER_ID` and notary settings for a notarized one —
+Build the same DMG locally (ad-hoc signed; add `DEVELOPER_ID` and notary settings for a notarized one;
 see the header of the script):
 
 ```bash
@@ -68,7 +68,7 @@ scripts/release/make-dmg.sh
 ```
 
 Without Developer ID secrets the published DMG is ad-hoc signed, so users must allow it once under
-System Settings › Privacy & Security. Add the secrets listed at the top of `release.yml` to ship signed,
+System Settings > Privacy & Security. Add the secrets listed at the top of `release.yml` to ship signed,
 notarized builds.
 
 ## Developer tools
@@ -103,12 +103,12 @@ docs/                ADRs, format notes, clean-room policy, performance report
 
 ## Documentation
 
-- [Performance report](docs/performance.md) — budgets and measured numbers
+- [Performance report](docs/performance.md): budgets and measured numbers
 - [Shader authoring](docs/shaders.md)
-- [Clean-room policy](docs/CLEANROOM.md) — required reading for contributors
+- [Clean-room policy](docs/CLEANROOM.md): required reading for contributors
 - Format notes: [PKG](docs/formats/pkg.md), [TEX](docs/formats/tex.md), [scenes](docs/formats/scene.md)
 - [Architecture decisions](docs/adr/)
 
 ## License
 
-MIT — see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+MIT. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

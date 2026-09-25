@@ -44,7 +44,7 @@ public enum WallpaperOrigin: String, Codable, Sendable {
 /// How completely a wallpaper can be rendered by this app.
 public enum SupportLevel: String, Codable, Sendable {
     case full
-    /// Renders, but some features (effects, particles…) are skipped.
+    /// Renders, but some features (effects, particles...) are skipped.
     case partial
     /// Cannot be rendered; the preview image is shown instead.
     case previewOnly
@@ -58,7 +58,7 @@ public struct Wallpaper: Codable, Sendable, Equatable, Identifiable {
     public let origin: WallpaperOrigin
     /// Folder that holds all of the wallpaper's files.
     public let root: URL
-    /// Entry file relative to `root` (video file, html page, shader, scene.json…).
+    /// Entry file relative to `root` (video file, html page, shader, scene.json...).
     public let entry: SanitizedPath
     public let preview: SanitizedPath?
     public let properties: [PropertyDefinition]

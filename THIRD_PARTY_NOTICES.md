@@ -7,7 +7,7 @@ Library Exception. https://github.com/apple/swift-argument-parser
 
 ## Format references (no code copied)
 
-- RePKG by notscuffed (MIT) — consulted as a public description of the PKG/TEX container layouts.
+- RePKG by notscuffed (MIT), consulted as a public description of the PKG/TEX container layouts.
   No source code from RePKG is included in this repository.
 
 No code from linux-wallpaperengine (GPL-3.0) or from Wallpaper Engine itself is used; see

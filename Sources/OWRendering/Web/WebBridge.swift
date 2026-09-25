@@ -78,7 +78,7 @@ public enum WebBridgeScript {
     })();
     """
 
-    /// Wallpaper Engine–shaped property payload: `{ key: { value: … } }`, colours as `"r g b"`.
+    /// Wallpaper Engine-shaped property payload: `{ key: { value: ... } }`, colours as `"r g b"`.
     public static func propertiesJSON(_ values: PropertyValues) -> String {
         let payload = values.reduce(into: [String: Any]()) { result, item in
             result[item.key] = ["value": jsonValue(item.value)]

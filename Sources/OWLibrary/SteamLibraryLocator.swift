@@ -45,7 +45,7 @@ public struct SteamLibraryLocator: Sendable {
         return Array(found.sorted { $0.path < $1.path }.prefix(limit))
     }
 
-    /// Extracts `"path"  "…"` values from Valve's KeyValues format (inline or multi-line).
+    /// Extracts `"path"  "..."` values from Valve's KeyValues format (inline or multi-line).
     static func parseLibraryPaths(_ text: String) -> [String] {
         guard let regex = try? NSRegularExpression(pattern: #""path"\s+"((?:[^"\\]|\\.)*)""#, options: .caseInsensitive) else {
             return []

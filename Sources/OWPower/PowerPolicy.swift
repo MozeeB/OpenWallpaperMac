@@ -71,7 +71,7 @@ public struct PowerSnapshot: Equatable, Sendable {
     }
 }
 
-/// Pure decision function: snapshot + settings → playback state per display.
+/// Pure decision function: snapshot + settings -> playback state per display.
 ///
 /// Precedence: the strictest action from every active rule wins (`suspend` > `pause` > `ignore`);
 /// critical thermal pressure always suspends. When playing, the frame rate is the lowest of the

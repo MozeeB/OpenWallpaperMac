@@ -5,7 +5,7 @@ import OWCore
 /// Drains the ring buffer at a fixed rate on a utility queue and emits spectra.
 ///
 /// Also reports sustained digital silence (all-zero samples for `silenceSeconds`), which is how a
-/// denied audio-capture permission manifests — Core Audio offers no preflight API for it.
+/// denied audio-capture permission manifests; Core Audio offers no preflight API for it.
 final class SpectrumAnalysisLoop: @unchecked Sendable {
     let rate: Double
     let silenceSeconds: Double

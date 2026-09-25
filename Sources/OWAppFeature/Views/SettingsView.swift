@@ -50,7 +50,7 @@ public struct SettingsView: View {
                     Text("\(Int(settings.renderScale * 100))%").monospacedDigit().frame(width: 44)
                 }
             }
-            Section("When…") {
+            Section("When...") {
                 rule("Another app is fullscreen or maximised", \.fullscreenApp)
                 rule("The wallpaper is covered", \.occluded)
                 rule("On battery power", \.onBattery)

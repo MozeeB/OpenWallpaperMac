@@ -27,9 +27,9 @@ Coordinates: origin bottom-left, y up, units of the orthographic projection. Lay
 
 ## models / materials
 
-`models/*.json`: `material`, optional `width`/`height`, `fullscreen`, `puppet` (unsupported → partial).
+`models/*.json`: `material`, optional `width`/`height`, `fullscreen`, `puppet` (unsupported -> partial).
 `materials/*.json` first pass: `blending` (`translucent` | `additive` | `normal` | `disabled`),
-`textures[0]` → `materials/<name>.tex`; `_rt_*` render targets are unsupported.
+`textures[0]` -> `materials/<name>.tex`; `_rt_*` render targets are unsupported.
 
 ## Effects
 

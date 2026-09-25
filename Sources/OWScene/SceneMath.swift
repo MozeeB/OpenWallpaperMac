@@ -5,7 +5,7 @@ import OWFormats
 import simd
 
 public enum SceneMath {
-    /// Orthographic projection mapping x∈[left,right], y∈[bottom,top] to clip space.
+    /// Orthographic projection mapping x in [left, right] and y in [bottom, top] to clip space.
     public static func ortho(left: Float, right: Float, bottom: Float, top: Float) -> simd_float4x4 {
         let width = right - left
         let height = top - bottom
@@ -39,10 +39,10 @@ public enum SceneMath {
     }
 }
 
-/// Maps scene space (origin bottom-left, y up, `width`×`height` units) onto a viewport.
+/// Maps scene space (origin bottom-left, y up, `width`x`height` units) onto a viewport.
 ///
 /// `fill` crops to cover the viewport, `fit` letterboxes, `stretch` distorts. Parallax shifts each
-/// layer by `(cursor - 0.5) × amount × depth × sceneSize`, eased with the scene's delay.
+/// layer by `(cursor - 0.5) * amount * depth * sceneSize`, eased with the scene's delay.
 public struct SceneCamera: Equatable, Sendable {
     public let sceneSize: SIMD2<Float>
     public let fill: FillMode
@@ -80,7 +80,7 @@ public struct SceneCamera: Equatable, Sendable {
         return SceneMath.ortho(left: low.x, right: high.x, bottom: low.y, top: high.y)
     }
 
-    /// Eases the cursor (0…1, y up) toward `target`.
+    /// Eases the cursor (0...1, y up) toward `target`.
     public mutating func updateCursor(target: SIMD2<Float>, delta: Float) {
         guard parallaxEnabled else { return }
         let clamped = simd_clamp(target, SIMD2(0, 0), SIMD2(1, 1))

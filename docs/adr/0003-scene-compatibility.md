@@ -1,4 +1,4 @@
-# ADR 0003 — Phased, clean-room scene compatibility with graceful fallback
+# ADR 0003: Phased, clean-room scene compatibility with graceful fallback
 
 **Status:** accepted
 

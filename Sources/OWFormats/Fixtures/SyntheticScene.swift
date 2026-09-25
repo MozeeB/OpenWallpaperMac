@@ -1,6 +1,6 @@
 import Foundation
 
-/// Generates original, license-clean Wallpaper Engine–style scene projects.
+/// Generates original, license-clean Wallpaper Engine-style scene projects.
 ///
 /// Used by tests, `owctl make-sample` and the bundled samples so no third-party
 /// Workshop content ever needs to live in the repository.

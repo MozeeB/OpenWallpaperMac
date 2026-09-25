@@ -8,8 +8,8 @@
 # Environment (all optional):
 #   VERSION           marketing version, e.g. 0.2.0 (default: MARKETING_VERSION in project.yml)
 #   BUILD_NUMBER      CFBundleVersion (default: 1)
-#   DEVELOPER_ID      "Developer ID Application: Name (TEAMID)" — enables real signing
-#   NOTARY_PROFILE    notarytool keychain profile, or…
+#   DEVELOPER_ID      "Developer ID Application: Name (TEAMID)"; enables real signing
+#   NOTARY_PROFILE    notarytool keychain profile, or...
 #   NOTARY_KEY_PATH / NOTARY_KEY_ID / NOTARY_ISSUER   App Store Connect API key for notarytool
 #   OUTPUT_DIR        where the DMG goes (default: dist)
 set -euo pipefail

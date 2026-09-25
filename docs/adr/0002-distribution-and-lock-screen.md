@@ -1,4 +1,4 @@
-# ADR 0002 — Unsandboxed Developer ID build; no lock-screen video
+# ADR 0002: Unsandboxed Developer ID build; no lock-screen video
 
 **Status:** accepted
 

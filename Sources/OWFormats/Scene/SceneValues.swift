@@ -29,7 +29,7 @@ public struct Vec3: Equatable, Sendable {
     public static let one = Vec3(1, 1, 1)
 }
 
-/// A scene value that is either a literal or bound to a user property (`{"user": key, "value": …}`).
+/// A scene value that is either a literal or bound to a user property (`{"user": key, "value": ...}`).
 public struct SceneValue: Equatable, Sendable {
     public let fallback: [Float]
     public let userKey: String?
@@ -65,7 +65,7 @@ public struct SceneValue: Equatable, Sendable {
 
 /// Parsing helpers for the loosely typed values found in scene JSON.
 public enum SceneValues {
-    /// Accepts numbers, booleans, `"1 2 3"` strings and `{"user":…, "value":…}` bindings.
+    /// Accepts numbers, booleans, `"1 2 3"` strings and `{"user":..., "value":...}` bindings.
     public static func value(_ raw: Any?) -> SceneValue? {
         switch raw {
         case let number as NSNumber:

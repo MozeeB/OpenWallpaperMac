@@ -5,10 +5,10 @@ import OWCore
 ///
 /// User contract (documented in `docs/shaders.md`):
 /// ```metal
-/// float4 mainImage(float2 fragCoord, constant OWUniforms& u) { … }
+/// float4 mainImage(float2 fragCoord, constant OWUniforms& u) { ... }
 /// ```
 /// Available: `u.iResolution`, `u.iTime`, `u.iTimeDelta`, `u.iFrame`, `u.iMouse`, `u.iDate`,
-/// `owAudio(u, band)` (0…63) and one `prop_<key>` macro (a `float4`) per user property.
+/// `owAudio(u, band)` (0...63) and one `prop_<key>` macro (a `float4`) per user property.
 public enum ShaderSourceBuilder {
     public static let maxProperties = 16
     public static let fileName = "wallpaper.metal"

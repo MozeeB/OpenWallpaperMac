@@ -1,7 +1,7 @@
 import Foundation
 import OWCore
 
-/// Maps Wallpaper Engine–style `general.properties` dictionaries to `PropertyDefinition`s.
+/// Maps Wallpaper Engine-style `general.properties` dictionaries to `PropertyDefinition`s.
 ///
 /// The same shape is used by native `wallpaper.json` manifests so authors learn one format.
 /// Unknown or unsupported property types (file pickers, label-only "text") are skipped.

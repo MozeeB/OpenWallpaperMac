@@ -30,7 +30,7 @@ struct InspectCommand: ParsableCommand {
 
     private func inspectFolder(_ url: URL) throws {
         let wallpaper = try ImportService(libraryRoot: url, knownEffects: EffectRegistry.known).importFolder(url)
-        print("\(wallpaper.title) — \(wallpaper.type.rawValue) (\(wallpaper.origin.rawValue)), support: \(wallpaper.support.rawValue)")
+        print("\(wallpaper.title): \(wallpaper.type.rawValue) (\(wallpaper.origin.rawValue)), support: \(wallpaper.support.rawValue)")
         print("entry: \(wallpaper.entry)  audio: \(wallpaper.usesAudio)")
         wallpaper.properties.forEach { print("  property \($0.key): \($0.kind) = \($0.defaultValue)") }
         guard wallpaper.type == .scene else { return }

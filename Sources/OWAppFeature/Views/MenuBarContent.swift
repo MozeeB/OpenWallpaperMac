@@ -11,7 +11,7 @@ public struct MenuBarContent: View {
     }
 
     public var body: some View {
-        Button("Open Library…") { openLibrary() }
+        Button("Open Library...") { openLibrary() }
             .keyboardShortcut("l")
             .accessibilityIdentifier("menu.openLibrary")
         Divider()
@@ -40,7 +40,7 @@ public struct MenuBarContent: View {
         Button(model.isPaused ? "Resume Wallpapers" : "Pause Wallpapers") { model.togglePause() }
             .keyboardShortcut("p")
             .accessibilityIdentifier("menu.togglePause")
-        SettingsLink { Text("Settings…") }
+        SettingsLink { Text("Settings...") }
             .keyboardShortcut(",")
         Divider()
         Button("Quit OpenWallpaperMac") { NSApplication.shared.terminate(nil) }

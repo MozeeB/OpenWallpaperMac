@@ -20,7 +20,7 @@ public struct PKGEntry: Equatable, Sendable {
     public let length: Int
 }
 
-/// An immutable, parsed Wallpaper Engine–style package (`scene.pkg`).
+/// An immutable, parsed Wallpaper Engine-style package (`scene.pkg`).
 ///
 /// Layout (little-endian): Int32-prefixed magic `PKGV####`, Int32 entry count, then per entry
 /// an Int32-prefixed name, Int32 offset and Int32 length. Offsets are relative to the end of

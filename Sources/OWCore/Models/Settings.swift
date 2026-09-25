@@ -108,7 +108,7 @@ public enum FrameRateCap: Int, Codable, Sendable, CaseIterable {
     case fps60 = 60
 }
 
-/// App-wide settings. Immutable; use `with…` helpers to derive new values.
+/// App-wide settings. Immutable; use `with...` helpers to derive new values.
 public struct AppSettings: Codable, Sendable, Equatable {
     public static let windowLevelOffsetRange = -3...0
 

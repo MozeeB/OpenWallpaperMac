@@ -1,6 +1,6 @@
 import Foundation
 
-/// Stereo samples → smoothed 64-band spectra per channel.
+/// Stereo samples -> smoothed 64-band spectra per channel.
 ///
 /// Owns FFT state; call from a single (utility) queue.
 public final class SpectrumPipeline {
@@ -21,7 +21,7 @@ public final class SpectrumPipeline {
         rightSmoother = SpectrumSmoother(bandCount: mapper.bandCount)
     }
 
-    /// Processes one window of interleaved stereo samples (L R L R …).
+    /// Processes one window of interleaved stereo samples (L R L R ...).
     public func process(interleaved samples: [Float]) -> (left: [Float], right: [Float]) {
         let (left, right) = SpectrumPipeline.deinterleave(samples)
         return process(left: left, right: right)

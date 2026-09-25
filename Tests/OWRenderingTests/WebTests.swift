@@ -37,7 +37,7 @@ struct WebPolicyTests {
         #expect(WebMessage.parse(["type": "ready", "a": 1, "b": 2, "c": 3, "d": 4]) == nil)
     }
 
-    @Test("builds Wallpaper Engine–shaped property payloads")
+    @Test("builds Wallpaper Engine-shaped property payloads")
     func payloads() {
         let json = WebBridgeScript.propertiesJSON([
             "tint": .color(RGBColor(red: 1, green: 0.5, blue: 0)), "on": .bool(true),

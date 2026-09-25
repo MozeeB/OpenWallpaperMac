@@ -5,7 +5,7 @@ A shader wallpaper is a folder with `wallpaper.json` and a `.metal` file contain
 ```metal
 float4 mainImage(float2 fragCoord, constant OWUniforms& u) {
     float2 uv = fragCoord / u.iResolution.xy;          // (0,0) bottom-left
-    float bass = owAudio(u, 2);                         // 0…1, band 0…63
+    float bass = owAudio(u, 2);                         // 0...1, band 0...63
     return float4(uv, 0.5 + 0.5 * sin(u.iTime + bass), 1.0);
 }
 ```
@@ -32,7 +32,7 @@ float4 mainImage(float2 fragCoord, constant OWUniforms& u) {
 }
 ```
 
-Porting from Shadertoy: `vec2/3/4` → `float2/3/4`, `mix`/`fract` work as-is, `mod(a,b)` → `fmod` (sign
+Porting from Shadertoy: `vec2/3/4` -> `float2/3/4`, `mix`/`fract` work as-is, `mod(a,b)` -> `fmod` (sign
 differs for negatives), `texture` channels are not supported yet.
 
 Compile errors are reported with the line number in *your* file. A shader that stalls the GPU is stopped

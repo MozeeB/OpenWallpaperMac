@@ -24,7 +24,7 @@ public enum TEXFormat: Int32, Sendable, CaseIterable {
     case rg88 = 8
     case r8 = 9
 
-    /// Bytes required for a `width`×`height` image in this format.
+    /// Bytes required for a `width`x`height` image in this format.
     public func byteCount(width: Int, height: Int) -> Int {
         let blocks = ((width + 3) / 4) * ((height + 3) / 4)
         switch self {
@@ -71,7 +71,7 @@ public struct TEXHeader: Equatable, Sendable {
 /// How mipmap bytes should be interpreted.
 public enum TEXPayload: Equatable, Sendable {
     case raw(TEXFormat)
-    /// A complete encoded image file (PNG, JPEG…) identified by its FreeImage format id.
+    /// A complete encoded image file (PNG, JPEG...) identified by its FreeImage format id.
     case encodedImage(Int32)
     case mp4
 }

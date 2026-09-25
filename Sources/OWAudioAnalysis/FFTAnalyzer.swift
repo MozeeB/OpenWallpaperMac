@@ -1,7 +1,7 @@
 import Accelerate
 import Foundation
 
-/// Windowed real FFT → linear magnitudes, using vDSP.
+/// Windowed real FFT -> linear magnitudes, using vDSP.
 ///
 /// Not thread-safe; own one per analysis queue. All buffers are preallocated so `magnitudes`
 /// performs no allocation after init besides the returned array.
@@ -39,7 +39,7 @@ public final class FFTAnalyzer {
         var output = [Float](repeating: 0, count: size / 2)
         real.withUnsafeMutableBufferPointer { realPtr in
             imag.withUnsafeMutableBufferPointer { imagPtr in
-                // Buffers are allocated with size/2 ≥ 32 elements in init, so base addresses exist.
+                // Buffers are allocated with size/2 >= 32 elements in init, so base addresses exist.
                 guard let realBase = realPtr.baseAddress, let imagBase = imagPtr.baseAddress else { return }
                 var split = DSPSplitComplex(realp: realBase, imagp: imagBase)
                 windowed.withUnsafeBufferPointer { input in

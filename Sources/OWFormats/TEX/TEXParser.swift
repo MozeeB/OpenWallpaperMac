@@ -3,7 +3,7 @@ import OWCore
 
 /// Parses `.tex` textures. Layout documented in `docs/formats/tex.md`:
 ///
-/// `TEXV####\0` `TEXI####\0` header(7×Int32) → `TEXB####\0` image container → optional
+/// `TEXV####\0` `TEXI####\0` header (7 Int32 values) -> `TEXB####\0` image container -> optional
 /// `TEXS####\0` frame container for animated textures.
 public enum TEXParser {
     static let magicLimit = 16
