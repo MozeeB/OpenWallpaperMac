@@ -1,0 +1,59 @@
+# Performance
+
+## Design
+
+- **Render only what is visible.** Per-display pause/suspend from `PowerPolicy` (fullscreen apps,
+  occlusion, battery, Low Power Mode, thermal, lock, sleep). Paused = display link stopped;
+  suspended = renderer torn down (decoder/GPU memory freed).
+- **Frame pacing.** Default 30 fps, 15 fps on battery, thermal caps (fair → 30, serious → 15,
+  critical → suspend). Static scenes render one frame and stop.
+- **Decode once.** One `AVQueuePlayer` per video file shared across displays.
+- **Cheap compositing.** Opaque, shadowless windows; ≤ 2 drawables; optional render scale for GPU
+  renderers (Settings › Performance).
+- **No hot-path allocation.** Particle update in place; instance buffers triple-buffered and reused;
+  audio IO thread only copies into a lock-free ring.
+
+## Measured (M-series MacBook, macOS 26.6, 2 displays: 3024×1964 built-in + 1920×1080 external)
+
+Live app, Release build, 30 fps, `ps`/`top` samples over ~10 s:
+
+| Wallpaper | App CPU (both displays) | WindowServer Δ | App RSS |
+|---|---|---|---|
+| Idle (library window open, no wallpaper) | 0.0% | — | 94 MB |
+| 4K HEVC video (shared decoder) | ~3.1% (+~2.3% VTDecoderXPC) | ~+13% | 77 MB |
+| Plasma shader (native resolution) | ~5.2% | ~+20% | 71 MB |
+| Synthetic scene (layer + shake + particles) | ~5.1% | — | 72 MB |
+
+Offscreen `owctl bench` at 3840×2160 (rendering cost only, no presentation):
+
+| Wallpaper | CPU ms / frame | Projected CPU @ 30 fps |
+|---|---|---|
+| Plasma shader | 0.39 | 1.2% |
+| Synthetic scene | 0.36 | 1.1% |
+| 4K HEVC decode via AVAssetReader | 1.28 | 3.8% (copies frames; AVPlayer path is cheaper) |
+
+## Against the budgets
+
+| Budget (per display) | Target | Result |
+|---|---|---|
+| Video app CPU | ≤ 3% | ✅ ~1.6% per display |
+| Shader app CPU | ≤ 2% | ⚠️ ~2.6% per display — dominated by per-frame drawable/present overhead, not shader work (1.2%) |
+| Scene app CPU | ≤ 5% | ✅ ~2.6% per display |
+| Paused | 0% | ✅ (display link stopped; unit-tested; idle measured 0.0%) |
+| WindowServer Δ | ≤ 15% hard, ≤ 10% stretch | ✅ hard limit met (~6.5% video, ~10% shader per display); stretch met for video only |
+
+Levers when over budget: lower the frame cap (15 fps halves presentation cost), reduce render scale, or
+enable "Pause when on battery".
+
+## How to measure
+
+```bash
+swift run -c release owctl bench path/to/wallpaper --width 3840 --height 2160
+```
+
+```bash
+top -l 5 -s 2 -stats pid,cpu,rsize,command | grep -E "OpenWallpaperMac|WindowServer"
+```
+
+For energy: Activity Monitor › Energy, or `sudo powermetrics --samplers cpu_power,gpu_power -i 2000 -n 30`
+with and without a wallpaper running.

@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.0.app || true
+      - name: Lint
+        run: brew install swiftlint && swiftlint lint --strict --quiet Sources App
+      - name: Unit & integration tests with coverage
+        run: swift test --enable-code-coverage
+      - name: Coverage gate (80% per module)
+        run: scripts/coverage-gate.sh
+      - name: CLI end-to-end
+        run: |
+          swift build -c release --product owctl
+          OUT=$(mktemp -d)
+          .build/release/owctl make-sample "$OUT"
+          .build/release/owctl validate "$OUT/Plasma" "$OUT/Synthetic Scene"
+          .build/release/owctl render "$OUT/Synthetic Scene" --out "$OUT/scene.png" --width 320 --height 180
+
+  app:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build app
+        run: |
+          brew install xcodegen
+          xcodegen generate
+          xcodebuild -project OpenWallpaperMac.xcodeproj -scheme OpenWallpaperMac -configuration Release \
+            -derivedDataPath build/DerivedData build

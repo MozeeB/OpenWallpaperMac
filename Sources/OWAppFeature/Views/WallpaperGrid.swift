@@ -18,9 +18,11 @@ struct WallpaperGrid: View {
             LazyVGrid(columns: columns, spacing: 14) {
                 ForEach(items) { wallpaper in
                     WallpaperCell(wallpaper: wallpaper, thumbnail: model.thumbnails[wallpaper.id], selected: selection == wallpaper.id)
-                        .onTapGesture { selection = wallpaper.id }
                         .onTapGesture(count: 2) { model.assign(wallpaper.id, to: nil) }
+                        .onTapGesture { selection = wallpaper.id }
                         .contextMenu { contextMenu(for: wallpaper) }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(.isButton)
                         .accessibilityIdentifier("wallpaper.\(wallpaper.title)")
                 }
             }
