@@ -94,3 +94,27 @@ struct StateTests {
         #expect(DisplayKey("d").description == "d")
     }
 }
+
+@Suite("Settings migration")
+struct SettingsMigrationTests {
+    @Test("older state files with missing keys decode with defaults")
+    func tolerant() throws {
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data(#"{"audioEnabled":true,"pauseRules":{"onBattery":"suspend"}}"#.utf8))
+        #expect(settings.audioEnabled)
+        #expect(settings.frameRateCap == .fps30)
+        #expect(settings.renderScale == 1)
+        #expect(settings.pauseRules.onBattery == .suspend)
+        #expect(settings.pauseRules.fullscreenApp == .pause)
+        let round = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings.with(renderScale: 0.1)))
+        #expect(round.renderScale == 0.25)
+        #expect(AppSettings(renderScale: .nan).renderScale == 1)
+    }
+
+    @Test("pause rule copy helper")
+    func ruleCopy() {
+        let rules = PauseRules.default.with(\.onBattery, .suspend)
+        #expect(rules.onBattery == .suspend)
+        #expect(PauseRules.default.onBattery == .ignore)
+        #expect(rules.fullscreenApp == PauseRules.default.fullscreenApp)
+    }
+}

@@ -50,6 +50,55 @@ public struct PauseRules: Codable, Sendable, Equatable {
     }
 
     public static let `default` = PauseRules()
+
+    private enum CodingKeys: String, CodingKey {
+        case fullscreenApp, onBattery, lowPowerMode, thermalSerious, occluded, screenLocked, screensAsleep
+    }
+
+    /// Missing keys fall back to defaults so older state files keep loading.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = PauseRules.default
+        self.init(
+            fullscreenApp: try c.decodeIfPresent(PauseAction.self, forKey: .fullscreenApp) ?? d.fullscreenApp,
+            onBattery: try c.decodeIfPresent(PauseAction.self, forKey: .onBattery) ?? d.onBattery,
+            lowPowerMode: try c.decodeIfPresent(PauseAction.self, forKey: .lowPowerMode) ?? d.lowPowerMode,
+            thermalSerious: try c.decodeIfPresent(PauseAction.self, forKey: .thermalSerious) ?? d.thermalSerious,
+            occluded: try c.decodeIfPresent(PauseAction.self, forKey: .occluded) ?? d.occluded,
+            screenLocked: try c.decodeIfPresent(PauseAction.self, forKey: .screenLocked) ?? d.screenLocked,
+            screensAsleep: try c.decodeIfPresent(PauseAction.self, forKey: .screensAsleep) ?? d.screensAsleep
+        )
+    }
+
+    public var mutableCopy: Mutable { Mutable(self) }
+
+    public func with(_ keyPath: WritableKeyPath<PauseRules.Mutable, PauseAction>, _ action: PauseAction) -> PauseRules {
+        var mutable = Mutable(self)
+        mutable[keyPath: keyPath] = action
+        return mutable.frozen
+    }
+
+    /// Scratch copy used only to build a new immutable value.
+    public struct Mutable {
+        public var fullscreenApp, onBattery, lowPowerMode, thermalSerious, occluded, screenLocked, screensAsleep: PauseAction
+
+        init(_ rules: PauseRules) {
+            fullscreenApp = rules.fullscreenApp
+            onBattery = rules.onBattery
+            lowPowerMode = rules.lowPowerMode
+            thermalSerious = rules.thermalSerious
+            occluded = rules.occluded
+            screenLocked = rules.screenLocked
+            screensAsleep = rules.screensAsleep
+        }
+
+        var frozen: PauseRules {
+            PauseRules(
+                fullscreenApp: fullscreenApp, onBattery: onBattery, lowPowerMode: lowPowerMode,
+                thermalSerious: thermalSerious, occluded: occluded, screenLocked: screenLocked, screensAsleep: screensAsleep
+            )
+        }
+    }
 }
 
 /// Frame-rate cap choices.
@@ -70,6 +119,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public let audioEnabled: Bool
     public let posterSync: Bool
     public let launchAtLogin: Bool
+    /// Fraction of native resolution for shader/scene rendering (0.25...1).
+    public let renderScale: Double
 
     public init(
         pauseRules: PauseRules = .default,
@@ -78,7 +129,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
         windowLevelOffset: Int = -1,
         audioEnabled: Bool = false,
         posterSync: Bool = true,
-        launchAtLogin: Bool = false
+        launchAtLogin: Bool = false,
+        renderScale: Double = 1
     ) {
         self.pauseRules = pauseRules
         self.frameRateCap = frameRateCap
@@ -88,9 +140,31 @@ public struct AppSettings: Codable, Sendable, Equatable {
         self.audioEnabled = audioEnabled
         self.posterSync = posterSync
         self.launchAtLogin = launchAtLogin
+        self.renderScale = renderScale.isFinite ? min(max(renderScale, 0.25), 1) : 1
     }
 
     public static let `default` = AppSettings()
+
+    private enum CodingKeys: String, CodingKey {
+        case pauseRules, frameRateCap, batteryFrameRateCap, windowLevelOffset, audioEnabled, posterSync
+        case launchAtLogin, renderScale
+    }
+
+    /// Missing keys fall back to defaults so older state files keep loading.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = AppSettings.default
+        self.init(
+            pauseRules: try c.decodeIfPresent(PauseRules.self, forKey: .pauseRules) ?? d.pauseRules,
+            frameRateCap: try c.decodeIfPresent(FrameRateCap.self, forKey: .frameRateCap) ?? d.frameRateCap,
+            batteryFrameRateCap: try c.decodeIfPresent(FrameRateCap.self, forKey: .batteryFrameRateCap) ?? d.batteryFrameRateCap,
+            windowLevelOffset: try c.decodeIfPresent(Int.self, forKey: .windowLevelOffset) ?? d.windowLevelOffset,
+            audioEnabled: try c.decodeIfPresent(Bool.self, forKey: .audioEnabled) ?? d.audioEnabled,
+            posterSync: try c.decodeIfPresent(Bool.self, forKey: .posterSync) ?? d.posterSync,
+            launchAtLogin: try c.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? d.launchAtLogin,
+            renderScale: try c.decodeIfPresent(Double.self, forKey: .renderScale) ?? d.renderScale
+        )
+    }
 
     public func with(
         pauseRules: PauseRules? = nil,
@@ -99,7 +173,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
         windowLevelOffset: Int? = nil,
         audioEnabled: Bool? = nil,
         posterSync: Bool? = nil,
-        launchAtLogin: Bool? = nil
+        launchAtLogin: Bool? = nil,
+        renderScale: Double? = nil
     ) -> AppSettings {
         AppSettings(
             pauseRules: pauseRules ?? self.pauseRules,
@@ -108,7 +183,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
             windowLevelOffset: windowLevelOffset ?? self.windowLevelOffset,
             audioEnabled: audioEnabled ?? self.audioEnabled,
             posterSync: posterSync ?? self.posterSync,
-            launchAtLogin: launchAtLogin ?? self.launchAtLogin
+            launchAtLogin: launchAtLogin ?? self.launchAtLogin,
+            renderScale: renderScale ?? self.renderScale
         )
     }
 }

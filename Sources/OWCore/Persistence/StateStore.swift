@@ -45,7 +45,7 @@ public enum StateStoreError: Error, Equatable, Sendable {
 
 /// Loads and atomically saves `PersistedState` as JSON.
 public actor StateStore {
-    public let fileURL: URL
+    public nonisolated let fileURL: URL
 
     public init(fileURL: URL) {
         self.fileURL = fileURL
