@@ -52,9 +52,19 @@ badge: *full*, *partial* (some effects skipped) or *preview only*.
 Download the latest DMG from [Releases](https://github.com/MozeeB/OpenWallpaperMac/releases), open it and
 drag **OpenWallpaperMac** into **Applications**.
 
-To publish a release, push a version tag. The [release workflow](.github/workflows/release.yml) runs the
-tests, builds the DMG, writes release notes from the conventional commits since the previous tag, and
-creates the GitHub Release with the DMG and its SHA-256 attached:
+Releases are fully automatic. Every push to `main` runs CI; when it passes, the
+[release workflow](.github/workflows/release.yml) reads the commit messages since the last release and,
+if a release is due, builds the DMG, writes the release notes, creates the tag and publishes the GitHub
+Release:
+
+| Commits since the last release | New version |
+|---|---|
+| `feat: ...` | minor (0.1.1 -> 0.2.0) |
+| `fix: ...` or `perf: ...` | patch (0.1.1 -> 0.1.2) |
+| `feat!: ...` or a `BREAKING CHANGE:` footer | major (next minor while below 1.0) |
+| only `docs:`, `chore:`, `ci:`, `test:`, `style:`, `refactor:` | no release |
+
+You can still release a specific version by pushing a tag yourself:
 
 ```bash
 git tag v0.2.0 && git push origin v0.2.0

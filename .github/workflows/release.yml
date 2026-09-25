@@ -1,7 +1,13 @@
 name: Release
 
-# Push a tag like `v0.2.0` to test, build the DMG, generate release notes and publish a GitHub Release.
-# Manual runs (workflow_dispatch) build the DMG as a downloadable artifact without publishing.
+# Fully automatic releases:
+#   Every push to main runs CI. When CI passes, this workflow reads the conventional commits since
+#   the last v* tag (scripts/release/next-version.sh). feat -> minor, fix/perf -> patch,
+#   breaking -> major; docs/chore/ci/test/style/refactor alone do not release. If a release is due
+#   it builds the DMG, writes the notes, creates the tag and publishes the GitHub Release.
+#
+# Also supported: pushing a v* tag by hand (releases that tag), and "Run workflow" (dry run that
+# only uploads the DMG as an artifact).
 #
 # Optional repository secrets for a signed + notarized build (otherwise the DMG is ad-hoc signed):
 #   MACOS_CERTIFICATE           base64 of a Developer ID Application .p12
@@ -11,53 +17,94 @@ name: Release
 #   NOTARY_KEY_ID, NOTARY_ISSUER
 
 on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   push:
     tags: ["v*"]
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to build (e.g. 0.2.0)"
+        description: "Version for the dry-run build (e.g. 0.2.0)"
         required: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 jobs:
   release:
+    # Automatic runs only follow a successful CI run of a push to main.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: macos-15
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # full history + tags for release notes
+          fetch-depth: 0 # full history + tags for version calculation and release notes
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Plan release
+        id: plan
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          DRY_RUN_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+          case "$GITHUB_EVENT_NAME" in
+            push) # a v* tag pushed by hand
+              VERSION="${GITHUB_REF_NAME#v}"; PUBLISH=true ;;
+            workflow_dispatch)
+              VERSION="${DRY_RUN_VERSION:-$(scripts/release/next-version.sh || true)}"
+              VERSION="${VERSION:-dev}"; PUBLISH=false ;;
+            workflow_run)
+              git fetch --tags --force --quiet
+              TIP="$(git ls-remote origin refs/heads/main | cut -f1)"
+              if [[ "$TIP" != "$HEAD_SHA" ]]; then
+                echo "Skipping: $HEAD_SHA is no longer the tip of main (a newer push will release)."
+                echo "release=false" >> "$GITHUB_OUTPUT"; exit 0
+              fi
+              VERSION="$(scripts/release/next-version.sh "$HEAD_SHA")"
+              if [[ -z "$VERSION" ]]; then
+                echo "No releasable commits (feat/fix/perf) since the last tag; nothing to release."
+                echo "release=false" >> "$GITHUB_OUTPUT"; exit 0
+              fi
+              if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+                echo "Tag v$VERSION already exists; skipping."
+                echo "release=false" >> "$GITHUB_OUTPUT"; exit 0
+              fi
+              PUBLISH=true ;;
+          esac
+          echo "Planned: version=$VERSION publish=$PUBLISH event=$GITHUB_EVENT_NAME"
+          {
+            echo "release=true"
+            echo "version=$VERSION"
+            echo "publish=$PUBLISH"
+            echo "sha=$HEAD_SHA"
+          } >> "$GITHUB_OUTPUT"
 
       - uses: maxim-lobanov/setup-xcode@v1
+        if: steps.plan.outputs.release == 'true'
         with:
           xcode-version: '26'  # Swift 6.2+ SDK required; never fall back to the 16.x default
 
-      - name: Resolve version
-        id: version
-        run: |
-          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
-          else
-            VERSION="${{ github.event.inputs.version }}"
-            VERSION="${VERSION:-$(awk -F'"' '/MARKETING_VERSION/ { print $2; exit }' project.yml)-dev}"
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Building $VERSION"
-
       - name: Install tools
+        if: steps.plan.outputs.release == 'true'
         run: brew install xcodegen
 
       - name: Test
+        # Automatic runs follow a green CI run of this exact commit; tag and manual runs test here.
+        if: steps.plan.outputs.release == 'true' && github.event_name != 'workflow_run'
         run: swift test
 
       - name: Import signing certificate
+        if: steps.plan.outputs.release == 'true'
         id: signing
         env:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
@@ -86,9 +133,10 @@ jobs:
           echo "signed=true" >> "$GITHUB_OUTPUT"
 
       - name: Build DMG
+        if: steps.plan.outputs.release == 'true'
         id: dmg
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.plan.outputs.version }}
           BUILD_NUMBER: ${{ github.run_number }}
           DEVELOPER_ID: ${{ steps.signing.outputs.signed == 'true' && secrets.DEVELOPER_ID || '' }}
           NOTARY_KEY_PATH: ${{ steps.signing.outputs.notary_key_path }}
@@ -99,33 +147,41 @@ jobs:
           echo "path=dist/OpenWallpaperMac-$VERSION.dmg" >> "$GITHUB_OUTPUT"
 
       - name: Generate release notes
+        if: steps.plan.outputs.release == 'true'
         run: |
           FLAG=""
           [[ "${{ steps.signing.outputs.signed }}" == "true" && -n "${{ secrets.NOTARY_KEY }}" ]] && FLAG="--signed"
-          TAG="${GITHUB_REF_TYPE/tag/$GITHUB_REF_NAME}"
-          [[ "$GITHUB_REF_TYPE" == "tag" ]] || TAG=HEAD
-          scripts/release/release-notes.sh "$TAG" $FLAG > dist/RELEASE_NOTES.md
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            scripts/release/release-notes.sh "$GITHUB_REF_NAME" $FLAG > dist/RELEASE_NOTES.md
+          else
+            NOTES_VERSION="${{ steps.plan.outputs.version }}" scripts/release/release-notes.sh HEAD $FLAG > dist/RELEASE_NOTES.md
+          fi
           cat dist/RELEASE_NOTES.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload build artifact
+        if: steps.plan.outputs.release == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: OpenWallpaperMac-${{ steps.version.outputs.version }}
+          name: OpenWallpaperMac-${{ steps.plan.outputs.version }}
           path: |
             dist/*.dmg
             dist/*.sha256
             dist/RELEASE_NOTES.md
 
       - name: Publish GitHub Release
-        if: github.ref_type == 'tag'
+        if: steps.plan.outputs.release == 'true' && steps.plan.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.plan.outputs.version }}
+          SHA: ${{ steps.plan.outputs.sha }}
         run: |
+          TAG="v$VERSION"
           PRERELEASE=""
-          [[ "$GITHUB_REF_NAME" == *-* ]] && PRERELEASE="--prerelease"
-          gh release create "$GITHUB_REF_NAME" dist/*.dmg dist/*.sha256 \
-            --title "OpenWallpaperMac ${{ steps.version.outputs.version }}" \
-            --notes-file dist/RELEASE_NOTES.md $PRERELEASE
+          [[ "$VERSION" == *-* ]] && PRERELEASE="--prerelease"
+          # For automatic releases gh creates the tag at the tested commit.
+          gh release create "$TAG" dist/*.dmg dist/*.sha256 --target "$SHA" \
+            --title "OpenWallpaperMac $VERSION" --notes-file dist/RELEASE_NOTES.md $PRERELEASE
+          echo "Published $TAG" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Clean up keychain
         if: always() && steps.signing.outputs.signed == 'true'

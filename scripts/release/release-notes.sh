@@ -2,15 +2,21 @@
 # Generates Markdown release notes from conventional commits between the previous tag and TAG.
 # Usage: scripts/release/release-notes.sh [TAG] [--signed]
 #   TAG defaults to HEAD. --signed omits the "unsigned build" install note.
+#   NOTES_VERSION=x.y.z names a release whose tag does not exist yet (automatic releases).
 set -euo pipefail
 
 TAG="${1:-HEAD}"
 SIGNED="${2:-}"
 REPO_URL="${REPO_URL:-https://github.com/MozeeB/OpenWallpaperMac}"
 
-PREVIOUS="$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)"
+# A tagged release starts after the previous tag; an untagged (automatic) one after the latest tag.
+BASE="$TAG^"
+[[ -n "${NOTES_VERSION:-}" ]] && BASE="$TAG"
+PREVIOUS="$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' "$BASE" 2>/dev/null || true)"
 if [[ -n "$PREVIOUS" ]]; then RANGE="$PREVIOUS..$TAG"; else RANGE="$TAG"; fi
-VERSION="${TAG#v}"
+VERSION="${NOTES_VERSION:-${TAG#v}}"
+TAG_NAME="$TAG"
+[[ -n "${NOTES_VERSION:-}" ]] && TAG_NAME="v$NOTES_VERSION"
 
 section() {
   local title="$1" pattern="$2" lines
@@ -50,4 +56,4 @@ cat <<EOF
 Requires macOS 15 or later (Apple silicon recommended). Verify the download with the attached \`.sha256\` file.
 
 EOF
-if [[ -n "$PREVIOUS" ]]; then echo "**Full changelog:** $REPO_URL/compare/$PREVIOUS...$TAG"; fi
+if [[ -n "$PREVIOUS" ]]; then echo "**Full changelog:** $REPO_URL/compare/$PREVIOUS...$TAG_NAME"; fi

@@ -15,6 +15,8 @@ jobs:
           xcode-version: '26'  # Swift 6.2+ SDK required; never fall back to the 16.x default
       - name: Lint
         run: brew install swiftlint && swiftlint lint --strict --quiet
+      - name: Release version calculator tests
+        run: scripts/release/test-next-version.sh
       - name: Unit & integration tests with coverage
         run: swift test --enable-code-coverage
       - name: Coverage gate (80% per module)
