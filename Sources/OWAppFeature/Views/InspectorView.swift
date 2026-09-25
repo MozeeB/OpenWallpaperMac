@@ -24,15 +24,12 @@ struct InspectorView: View {
                     HStack {
                         Text(screen.name)
                         Spacer()
-                        if let assigned = model.assignment(for: screen.key), assigned.rotation != nil,
-                           assigned.wallpapers.contains(wallpaper.id) {
-                            Label("In rotation", systemImage: "arrow.triangle.2.circlepath").foregroundStyle(.green)
-                        } else if model.assignment(for: screen.key)?.wallpaper == wallpaper.id {
-                            Label("Active", systemImage: "checkmark").foregroundStyle(.green)
-                        } else {
-                            Button("Set") { model.assign(wallpaper.id, to: screen.key) }
+                        status(on: screen.key)
+                        SpaceTargetMenu(model: model, title: "Set", display: screen.key) { space in
+                            model.assign(wallpaper.id, to: screen.key, space: space)
                         }
                     }
+                    SpaceAssignmentsList(model: model, display: screen.key)
                 }
             }
             if let display = assignedDisplay, !wallpaper.properties.isEmpty {
@@ -53,8 +50,20 @@ struct InspectorView: View {
         .formStyle(.grouped)
     }
 
+    /// Whether this wallpaper is what the display shows right now (alone or in a rotation).
+    @ViewBuilder
+    private func status(on display: DisplayKey) -> some View {
+        if let assigned = model.effectiveAssignment(for: display), assigned.wallpapers.contains(wallpaper.id) {
+            if assigned.rotation != nil {
+                Label("In rotation", systemImage: "arrow.triangle.2.circlepath").foregroundStyle(.green)
+            } else {
+                Label("Active", systemImage: "checkmark").foregroundStyle(.green)
+            }
+        }
+    }
+
     private var assignedDisplay: DisplayKey? {
-        if let editingDisplay, model.assignment(for: editingDisplay)?.wallpaper == wallpaper.id { return editingDisplay }
+        if let editingDisplay, model.effectiveAssignment(for: editingDisplay)?.wallpaper == wallpaper.id { return editingDisplay }
         return model.state.assignments.first { $0.wallpaper == wallpaper.id }?.display
     }
 
@@ -69,7 +78,7 @@ struct InspectorView: View {
     @ViewBuilder
     private func propertiesSection(display: DisplayKey) -> some View {
         Section {
-            let values = wallpaper.properties.resolve(model.assignment(for: display)?.overrides ?? [:])
+            let values = wallpaper.properties.resolve(model.effectiveAssignment(for: display)?.overrides ?? [:])
             ForEach(wallpaper.properties) { definition in
                 PropertyControl(definition: definition, value: values[definition.key] ?? definition.defaultValue) { value in
                     model.setOverride(value, key: definition.key, display: display)
@@ -96,7 +105,7 @@ struct InspectorView: View {
 
     private func fillBinding(_ display: DisplayKey) -> Binding<FillMode> {
         Binding(
-            get: { model.assignment(for: display)?.fill ?? .fill },
+            get: { model.effectiveAssignment(for: display)?.fill ?? .fill },
             set: { model.setFill($0, display: display) }
         )
     }

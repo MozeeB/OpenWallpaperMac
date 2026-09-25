@@ -28,7 +28,8 @@ public enum AppEnvironment {
             : nil
         let audio: (any AudioSpectrumSource)? = AudioCaptureService.isSupported ? AudioCaptureService() : nil
         let coordinator = PlaybackCoordinator(
-            displays: displays, power: PowerMonitor(), factory: DefaultRendererFactory(), posters: posters, audio: audio
+            displays: displays, power: PowerMonitor(), factory: DefaultRendererFactory(), posters: posters, audio: audio,
+            spaces: SpaceMonitor()
         )
         let store = StateStore(fileURL: base.appendingPathComponent("state.json"))
         let importer = ImportService(libraryRoot: base.appendingPathComponent("Library"), knownEffects: EffectRegistry.known)

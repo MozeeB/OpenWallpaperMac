@@ -27,7 +27,7 @@ public enum FillMode: String, Codable, Sendable, CaseIterable {
     case stretch
 }
 
-/// Which wallpaper runs on which display, optionally rotating through several.
+/// Which wallpaper runs on which display (optionally on one Space only), optionally rotating.
 public struct DisplayAssignment: Codable, Sendable, Equatable {
     public let display: DisplayKey
     /// The wallpaper shown when there is no rotation (and the first item of a rotation).
@@ -36,33 +36,38 @@ public struct DisplayAssignment: Codable, Sendable, Equatable {
     public let fill: FillMode
     /// Present when this display cycles through several wallpapers.
     public let rotation: Rotation?
+    /// When set, the assignment only applies while this Space is active on the display.
+    public let space: SpaceKey?
 
     public init(
         display: DisplayKey, wallpaper: WallpaperID, overrides: PropertyValues = [:], fill: FillMode = .fill,
-        rotation: Rotation? = nil
+        rotation: Rotation? = nil, space: SpaceKey? = nil
     ) {
         self.display = display
         self.wallpaper = wallpaper
         self.overrides = overrides
         self.fill = fill
         self.rotation = rotation.flatMap { $0.items.count > 1 ? $0 : nil }
+        self.space = space
     }
+
+    public var slot: AssignmentSlot { AssignmentSlot(display: display, space: space) }
 
     /// Every wallpaper this assignment can show.
     public var wallpapers: [WallpaperID] { rotation?.items ?? [wallpaper] }
 
     public func with(overrides: PropertyValues) -> DisplayAssignment {
-        DisplayAssignment(display: display, wallpaper: wallpaper, overrides: overrides, fill: fill, rotation: rotation)
+        DisplayAssignment(display: display, wallpaper: wallpaper, overrides: overrides, fill: fill, rotation: rotation, space: space)
     }
 
     public func with(fill: FillMode) -> DisplayAssignment {
-        DisplayAssignment(display: display, wallpaper: wallpaper, overrides: overrides, fill: fill, rotation: rotation)
+        DisplayAssignment(display: display, wallpaper: wallpaper, overrides: overrides, fill: fill, rotation: rotation, space: space)
     }
 
     public func with(rotation: Rotation?) -> DisplayAssignment {
         DisplayAssignment(
             display: display, wallpaper: rotation?.items.first ?? wallpaper, overrides: overrides, fill: fill,
-            rotation: rotation
+            rotation: rotation, space: space
         )
     }
 }

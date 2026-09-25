@@ -33,12 +33,33 @@ public struct Rotation: Codable, Sendable, Equatable {
         return (current + offset) % items.count
     }
 
-    /// Human-readable interval, e.g. "5 s", "1 min", "1 h".
-    public static func label(for interval: TimeInterval) -> String {
-        switch interval {
-        case ..<60: return "\(Int(interval)) s"
-        case ..<3600: return "\(Int(interval / 60)) min"
-        default: return "\(Int(interval / 3600)) h"
+    /// Units for a custom interval.
+    public enum Unit: String, CaseIterable, Sendable {
+        case seconds, minutes, hours
+
+        public var seconds: TimeInterval {
+            switch self {
+            case .seconds: return 1
+            case .minutes: return 60
+            case .hours: return 3600
+            }
         }
+    }
+
+    /// Converts a custom value to seconds, or nil when outside `intervalRange` or not a number.
+    public static func customInterval(_ value: Double, unit: Unit) -> TimeInterval? {
+        let seconds = value * unit.seconds
+        guard seconds.isFinite, intervalRange.contains(seconds) else { return nil }
+        return seconds
+    }
+
+    /// Human-readable interval, e.g. "5 s", "1 min", "1 h" (and "90 s", "1.5 h" for custom values).
+    public static func label(for interval: TimeInterval) -> String {
+        func trimmed(_ value: Double) -> String {
+            value.rounded() == value ? String(Int(value)) : String(format: "%.1f", value)
+        }
+        if interval < 60 || interval.truncatingRemainder(dividingBy: 60) != 0 { return "\(trimmed(interval)) s" }
+        if interval < 3600 || interval.truncatingRemainder(dividingBy: 1800) != 0 { return "\(trimmed(interval / 60)) min" }
+        return "\(trimmed(interval / 3600)) h"
     }
 }

@@ -22,7 +22,9 @@ final class RotationUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Active Rotations"].waitForExistence(timeout: 5))
         let stopButtons = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'rotation.stop.'"))
         XCTAssertGreaterThan(stopButtons.count, 0)
-        while stopButtons.firstMatch.exists { stopButtons.firstMatch.click() }
+        // Bounded: each click must remove one rotation (a regression must fail, not hang).
+        for _ in 0 ..< 4 where stopButtons.firstMatch.exists { stopButtons.firstMatch.click() }
+        XCTAssertFalse(stopButtons.firstMatch.exists, "every Stop removed its rotation")
         XCTAssertFalse(app.staticTexts["Active Rotations"].waitForExistence(timeout: 2), "stopping removes the rotation")
     }
 }

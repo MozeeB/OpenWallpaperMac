@@ -1,8 +1,8 @@
 import Foundation
 import OWCore
 
-/// Tracks where each display is in its rotation and decides when to switch. Pure: time and
-/// randomness are passed in, so it is fully unit-testable.
+/// Tracks where each assignment slot (display, or display + Space) is in its rotation and decides
+/// when to switch. Pure: time and randomness are passed in, so it is fully unit-testable.
 struct RotationTracker {
     struct Entry: Equatable {
         let rotation: Rotation
@@ -10,14 +10,15 @@ struct RotationTracker {
         var lastSwitch: Date
     }
 
-    private(set) var entries: [DisplayKey: Entry] = [:]
+    private(set) var entries: [AssignmentSlot: Entry] = [:]
 
     var isActive: Bool { !entries.isEmpty }
 
     /// Adopts new assignments. Unchanged rotations keep their position; a new item list restarts.
-    mutating func sync(_ assignments: [DisplayKey: DisplayAssignment], now: Date) {
-        var next: [DisplayKey: Entry] = [:]
-        for (key, assignment) in assignments {
+    mutating func sync(_ assignments: [DisplayAssignment], now: Date) {
+        var next: [AssignmentSlot: Entry] = [:]
+        for assignment in assignments {
+            let key = assignment.slot
             guard let rotation = assignment.rotation else { continue }
             if let existing = entries[key], existing.rotation.items == rotation.items {
                 next[key] = Entry(rotation: rotation, index: existing.index, lastSwitch: existing.lastSwitch)
@@ -30,24 +31,24 @@ struct RotationTracker {
 
     /// The wallpaper a display should show right now.
     func wallpaper(for assignment: DisplayAssignment) -> WallpaperID {
-        guard let entry = entries[assignment.display], entry.rotation.items.indices.contains(entry.index) else {
+        guard let entry = entries[assignment.slot], entry.rotation.items.indices.contains(entry.index) else {
             return assignment.wallpaper
         }
         return entry.rotation.items[entry.index]
     }
 
     /// 1-based position and item count, for display in the UI.
-    func position(for display: DisplayKey) -> (current: Int, count: Int)? {
-        entries[display].map { ($0.index + 1, $0.rotation.items.count) }
+    func position(for slot: AssignmentSlot) -> (current: Int, count: Int)? {
+        entries[slot].map { ($0.index + 1, $0.rotation.items.count) }
     }
 
-    /// Advances every rotation whose interval has elapsed. A display that is not playing holds its
-    /// timer, so a paused or covered wallpaper does not skip ahead. Returns the displays that switched.
+    /// Advances every rotation whose interval has elapsed. A slot that is not playing (paused, covered,
+    /// or on a Space that is not active) holds its timer. Returns the slots that switched.
     mutating func advance<G: RandomNumberGenerator>(
-        now: Date, isPlaying: (DisplayKey) -> Bool, using generator: inout G
-    ) -> [DisplayKey] {
-        var switched: [DisplayKey] = []
-        for key in entries.keys.sorted(by: { $0.rawValue < $1.rawValue }) {
+        now: Date, isPlaying: (AssignmentSlot) -> Bool, using generator: inout G
+    ) -> [AssignmentSlot] {
+        var switched: [AssignmentSlot] = []
+        for key in entries.keys.sorted(by: RotationTracker.order) {
             guard var entry = entries[key] else { continue }
             if !isPlaying(key) {
                 entry.lastSwitch = now
@@ -61,12 +62,16 @@ struct RotationTracker {
         return switched
     }
 
+    private static func order(_ lhs: AssignmentSlot, _ rhs: AssignmentSlot) -> Bool {
+        (lhs.display.rawValue, lhs.space?.rawValue ?? "") < (rhs.display.rawValue, rhs.space?.rawValue ?? "")
+    }
+
     /// Jumps to the next item immediately (menu "Next Wallpaper"). Returns false without a rotation.
-    mutating func skip<G: RandomNumberGenerator>(_ display: DisplayKey, now: Date, using generator: inout G) -> Bool {
-        guard var entry = entries[display] else { return false }
+    mutating func skip<G: RandomNumberGenerator>(_ slot: AssignmentSlot, now: Date, using generator: inout G) -> Bool {
+        guard var entry = entries[slot] else { return false }
         entry.index = entry.rotation.nextIndex(after: entry.index, using: &generator)
         entry.lastSwitch = now
-        entries[display] = entry
+        entries[slot] = entry
         return true
     }
 }

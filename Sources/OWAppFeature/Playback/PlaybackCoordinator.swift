@@ -24,8 +24,10 @@ public final class PlaybackCoordinator {
     let factory: any RendererMaking
     let posters: PosterSync?
     private let audio: (any AudioSpectrumSource)?
+    /// Active Space per display; nil when per-Space support is unavailable.
+    let spaces: SpaceMonitor?
     private var library: [WallpaperID: Wallpaper] = [:]
-    private var assignments: [DisplayKey: DisplayAssignment] = [:]
+    private var assignments: [DisplayAssignment] = []
     var sessions: [DisplayKey: RenderSession] = [:]
     /// Next wallpaper of a rotation, loading off screen.
     var pending: [DisplayKey: RenderSession] = [:]
@@ -36,13 +38,14 @@ public final class PlaybackCoordinator {
 
     public init(
         displays: DisplayManager, power: PowerMonitor, factory: any RendererMaking,
-        posters: PosterSync?, audio: (any AudioSpectrumSource)?
+        posters: PosterSync?, audio: (any AudioSpectrumSource)?, spaces: SpaceMonitor? = nil
     ) {
         self.displays = displays
         self.power = power
         self.factory = factory
         self.posters = posters
         self.audio = audio
+        self.spaces = spaces
     }
 
     public func start() {
@@ -53,8 +56,13 @@ public final class PlaybackCoordinator {
         power.onChange = { [weak self] _ in self?.applyPlayback() }
         audio?.onSpectrum = { [weak self] spectrum in self?.broadcast(spectrum) }
         audio?.onSilence = { [weak self] in self?.onEvent?(.audioSilent) }
+        spaces?.onChange = { [weak self] in
+            self?.reconcile()
+            self?.onEvent?(.spacesChanged)
+        }
         displays.start()
         power.start()
+        spaces?.start()
         layoutChanged()
     }
 
@@ -65,6 +73,7 @@ public final class PlaybackCoordinator {
         sessions = [:]
         pending = [:]
         audio?.stop()
+        spaces?.stop()
         power.stop()
         displays.stop()
         if restoreOriginalWallpaper { posters?.restoreOriginals() }
@@ -73,7 +82,8 @@ public final class PlaybackCoordinator {
 
     public func update(library items: [Wallpaper], assignments list: [DisplayAssignment], settings newSettings: AppSettings) {
         library = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        assignments = Dictionary(list.map { ($0.display, $0) }, uniquingKeysWith: { _, last in last })
+        // One assignment per slot (display, or display + Space); the last one wins.
+        assignments = Array(Dictionary(list.map { ($0.slot, $0) }, uniquingKeysWith: { _, last in last }).values)
         rotations.sync(assignments, now: Date())
         updateRotationTimer()
         let levelChanged = newSettings.windowLevelOffset != settings.windowLevelOffset
@@ -93,25 +103,41 @@ public final class PlaybackCoordinator {
 
     public func activeWallpaper(for display: DisplayKey) -> WallpaperID? { sessions[display]?.wallpaper.id }
 
-    /// 1-based position within the display's rotation, if it has one.
+    /// 1-based position within the rotation showing on the display, if it has one.
     public func rotationPosition(for display: DisplayKey) -> (current: Int, count: Int)? {
-        rotations.position(for: display)
+        effectiveAssignment(for: display).flatMap { rotations.position(for: $0.slot) }
     }
 
-    /// Shows the next wallpaper of a display's rotation now.
+    /// Shows the next wallpaper of the rotation showing on the display now.
     public func skipToNext(on display: DisplayKey) {
-        guard rotations.skip(display, now: Date(), using: &random) else { return }
+        guard let slot = effectiveAssignment(for: display)?.slot,
+              rotations.skip(slot, now: Date(), using: &random)
+        else { return }
         reconcile()
+    }
+
+    /// Whether Spaces can be told apart on this Mac.
+    public var supportsSpaces: Bool { spaces?.isAvailable ?? false }
+
+    /// The Spaces of a display and which one is active.
+    public func spaces(on display: DisplayKey) -> DisplaySpaces? {
+        spaces?.spaces[display]
     }
 
     private func layoutChanged() {
         power.updateDisplays(Dictionary(uniqueKeysWithValues: displays.screens.map { ($0.key, $0.cgBounds) }))
+        spaces?.updateDisplays(displays.screens.map(\.key))
         reconcile()
+    }
+
+    /// The assignment that applies on a display right now: the active Space's own, else the default.
+    public func effectiveAssignment(for display: DisplayKey) -> DisplayAssignment? {
+        assignments.effective(for: display, space: spaces?.currentSpace(on: display))
     }
 
     /// The wallpaper a display should show now (its rotation's current item, or its single wallpaper).
     func desiredWallpaper(for display: DisplayKey) -> Wallpaper? {
-        guard let assignment = assignments[display] else { return nil }
+        guard let assignment = effectiveAssignment(for: display) else { return nil }
         return library[rotations.wallpaper(for: assignment)]
     }
 
@@ -122,7 +148,7 @@ public final class PlaybackCoordinator {
             clearDisplay(key)
         }
         for screen in displays.screens {
-            guard let assignment = assignments[screen.key], let wallpaper = desiredWallpaper(for: screen.key) else {
+            guard let assignment = effectiveAssignment(for: screen.key), let wallpaper = desiredWallpaper(for: screen.key) else {
                 displays.windows[screen.key]?.host(nil)
                 continue
             }
@@ -181,13 +207,16 @@ public final class PlaybackCoordinator {
         }
     }
 
-    /// Switches every display whose rotation interval elapsed while it was playing.
+    /// Switches every on-screen rotation whose interval elapsed while it was playing. Rotations of
+    /// Spaces that are not active hold their position.
     func advanceRotations(now: Date) {
         let paused = userPaused
         let visible = sessions
-        let switched = rotations.advance(now: now, isPlaying: { key in
+        let onScreen = Set(displays.screens.compactMap { effectiveAssignment(for: $0.key)?.slot })
+        let switched = rotations.advance(now: now, isPlaying: { slot in
+            guard onScreen.contains(slot) else { return false }
             // No visible session (e.g. a broken item without preview) must not stall the rotation.
-            visible[key].map(\.playback.isPlaying) ?? !paused
+            return visible[slot.display].map(\.playback.isPlaying) ?? !paused
         }, using: &random)
         if !switched.isEmpty { reconcile() }
     }

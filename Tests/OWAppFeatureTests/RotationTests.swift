@@ -97,10 +97,12 @@ struct LibraryRotationTests {
 @Suite("RotationTracker")
 struct RotationTrackerTests {
     let start = Date(timeIntervalSince1970: 1000)
+    let slotA = AssignmentSlot(display: a)
+    let spaceTwo = AssignmentSlot(display: a, space: SpaceKey("desktop-2"))
 
     private func tracker(interval: TimeInterval = 5) -> RotationTracker {
         var tracker = RotationTracker()
-        tracker.sync([a: DisplayAssignment(display: a, wallpaper: ids[0], rotation: Rotation(items: ids, interval: interval))], now: start)
+        tracker.sync([DisplayAssignment(display: a, wallpaper: ids[0], rotation: Rotation(items: ids, interval: interval))], now: start)
         return tracker
     }
 
@@ -110,38 +112,55 @@ struct RotationTrackerTests {
         var generator = FixedGenerator(value: 0)
         let assignment = DisplayAssignment(display: a, wallpaper: ids[0], rotation: Rotation(items: ids))
         #expect(tracker.advance(now: start.addingTimeInterval(4.9), isPlaying: { _ in true }, using: &generator).isEmpty)
-        #expect(tracker.advance(now: start.addingTimeInterval(5), isPlaying: { _ in true }, using: &generator) == [a])
+        #expect(tracker.advance(now: start.addingTimeInterval(5), isPlaying: { _ in true }, using: &generator) == [slotA])
         #expect(tracker.wallpaper(for: assignment) == ids[1])
-        #expect(tracker.position(for: a)! == (2, 4))
+        #expect(tracker.position(for: slotA)! == (2, 4))
         #expect(tracker.advance(now: start.addingTimeInterval(9), isPlaying: { _ in true }, using: &generator).isEmpty)
-        #expect(tracker.advance(now: start.addingTimeInterval(10), isPlaying: { _ in true }, using: &generator) == [a])
+        #expect(tracker.advance(now: start.addingTimeInterval(10), isPlaying: { _ in true }, using: &generator) == [slotA])
     }
 
-    @Test("paused displays hold their timer")
+    @Test("paused slots hold their timer")
     func pausedHolds() {
         var tracker = tracker()
         var generator = FixedGenerator(value: 0)
         #expect(tracker.advance(now: start.addingTimeInterval(60), isPlaying: { _ in false }, using: &generator).isEmpty)
         #expect(tracker.advance(now: start.addingTimeInterval(64), isPlaying: { _ in true }, using: &generator).isEmpty,
                 "a full interval must pass after resuming")
-        #expect(tracker.advance(now: start.addingTimeInterval(65), isPlaying: { _ in true }, using: &generator) == [a])
+        #expect(tracker.advance(now: start.addingTimeInterval(65), isPlaying: { _ in true }, using: &generator) == [slotA])
+    }
+
+    @Test("display default and a Space rotation advance independently")
+    func perSpace() {
+        var tracker = RotationTracker()
+        var generator = FixedGenerator(value: 0)
+        let spaceAssignment = DisplayAssignment(
+            display: a, wallpaper: ids[2], rotation: Rotation(items: [ids[2], ids[3]]), space: spaceTwo.space
+        )
+        tracker.sync([
+            DisplayAssignment(display: a, wallpaper: ids[0], rotation: Rotation(items: [ids[0], ids[1]])), spaceAssignment,
+        ], now: start)
+        // Only the Space rotation is on screen.
+        let switched = tracker.advance(now: start.addingTimeInterval(5), isPlaying: { $0 == spaceTwo }, using: &generator)
+        #expect(switched == [spaceTwo])
+        #expect(tracker.wallpaper(for: spaceAssignment) == ids[3])
+        #expect(tracker.position(for: slotA)! == (1, 2), "hidden default rotation did not move")
     }
 
     @Test("sync keeps position when only settings change, restarts on new items, removes old")
     func sync() {
         var tracker = tracker()
         var generator = FixedGenerator(value: 0)
-        _ = tracker.skip(a, now: start, using: &generator)
-        tracker.sync([a: DisplayAssignment(display: a, wallpaper: ids[0], rotation: Rotation(items: ids, interval: 60))], now: start)
-        #expect(tracker.entries[a]?.index == 1)
-        #expect(tracker.entries[a]?.rotation.interval == 60)
-        tracker.sync([a: DisplayAssignment(display: a, wallpaper: ids[0], rotation: Rotation(items: [ids[2], ids[3]]))], now: start)
-        #expect(tracker.entries[a]?.index == 0)
-        tracker.sync([a: DisplayAssignment(display: a, wallpaper: ids[0])], now: start)
+        _ = tracker.skip(slotA, now: start, using: &generator)
+        tracker.sync([DisplayAssignment(display: a, wallpaper: ids[0], rotation: Rotation(items: ids, interval: 60))], now: start)
+        #expect(tracker.entries[slotA]?.index == 1)
+        #expect(tracker.entries[slotA]?.rotation.interval == 60)
+        tracker.sync([DisplayAssignment(display: a, wallpaper: ids[0], rotation: Rotation(items: [ids[2], ids[3]]))], now: start)
+        #expect(tracker.entries[slotA]?.index == 0)
+        tracker.sync([DisplayAssignment(display: a, wallpaper: ids[0])], now: start)
         #expect(!tracker.isActive)
         #expect(tracker.wallpaper(for: DisplayAssignment(display: a, wallpaper: ids[3])) == ids[3])
-        #expect(!tracker.skip(a, now: start, using: &generator))
-        #expect(tracker.position(for: a) == nil)
+        #expect(!tracker.skip(slotA, now: start, using: &generator))
+        #expect(tracker.position(for: slotA) == nil)
     }
 }
 

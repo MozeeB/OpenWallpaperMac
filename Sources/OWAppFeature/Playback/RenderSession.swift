@@ -51,4 +51,5 @@ public enum CoordinatorEvent: Equatable, Sendable {
     case fellBackToPreview(DisplayKey, WallpaperID)
     case audioSilent
     case audioUnavailable(String)
+    case spacesChanged
 }

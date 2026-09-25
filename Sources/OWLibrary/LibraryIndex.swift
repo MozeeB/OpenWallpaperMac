@@ -43,30 +43,38 @@ public enum LibraryIndex {
             let rotation = assignment.rotation?.pruned(keeping: ids)
             return DisplayAssignment(
                 display: assignment.display, wallpaper: first, overrides: assignment.overrides,
-                fill: assignment.fill, rotation: rotation
+                fill: assignment.fill, rotation: rotation, space: assignment.space
             )
         }
     }
 
-    /// Sets (or replaces) a rotation for a display. One item becomes a plain assignment.
+    /// Sets (or replaces) a rotation for a display, or for one of its Spaces. One item becomes a plain
+    /// assignment.
     public static func rotating(
         _ wallpapers: [WallpaperID], interval: TimeInterval, shuffle: Bool, on display: DisplayKey,
-        in assignments: [DisplayAssignment]
+        space: SpaceKey? = nil, in assignments: [DisplayAssignment]
     ) -> [DisplayAssignment] {
-        guard let first = wallpapers.first else { return assignments.filter { $0.display != display } }
+        let slot = AssignmentSlot(display: display, space: space)
+        guard let first = wallpapers.first else { return clearing(slot, in: assignments) }
         let rotation = Rotation(items: wallpapers, interval: interval, shuffle: shuffle)
-        let existing = assignments.first { $0.display == display }
+        let existing = assignments.assignment(in: slot)
         let assignment = DisplayAssignment(
             display: display, wallpaper: first, overrides: existing?.overrides ?? [:],
-            fill: existing?.fill ?? .fill, rotation: rotation
+            fill: existing?.fill ?? .fill, rotation: rotation, space: space
         )
-        return assignments.filter { $0.display != display } + [assignment]
+        return clearing(slot, in: assignments) + [assignment]
     }
 
-    /// Sets (or replaces) the assignment for a display.
+    /// Sets (or replaces) the assignment for a display, or for one of its Spaces.
     public static func assigning(
-        _ wallpaper: WallpaperID, to display: DisplayKey, in assignments: [DisplayAssignment]
+        _ wallpaper: WallpaperID, to display: DisplayKey, space: SpaceKey? = nil, in assignments: [DisplayAssignment]
     ) -> [DisplayAssignment] {
-        assignments.filter { $0.display != display } + [DisplayAssignment(display: display, wallpaper: wallpaper)]
+        let slot = AssignmentSlot(display: display, space: space)
+        return clearing(slot, in: assignments) + [DisplayAssignment(display: display, wallpaper: wallpaper, space: space)]
+    }
+
+    /// Removes the assignment of one slot (a Space-specific one, or the display default).
+    public static func clearing(_ slot: AssignmentSlot, in assignments: [DisplayAssignment]) -> [DisplayAssignment] {
+        assignments.filter { $0.slot != slot }
     }
 }

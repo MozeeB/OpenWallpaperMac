@@ -20,7 +20,18 @@ public struct MenuBarContent: View {
                 ForEach(model.library) { wallpaper in
                     Button(wallpaper.title) { model.assign(wallpaper.id, to: screen.key) }
                 }
-                if model.assignment(for: screen.key)?.rotation != nil {
+                if let space = model.spaces(on: screen.key)?.currentSpace, model.supportsSpaces {
+                    Menu("Only on \(space.name)") {
+                        ForEach(model.library) { wallpaper in
+                            Button(wallpaper.title) { model.assign(wallpaper.id, to: screen.key, space: space.key) }
+                        }
+                        if model.assignment(for: screen.key, space: space.key) != nil {
+                            Divider()
+                            Button("Use Display Default Here") { model.clearAssignment(for: screen.key, space: space.key) }
+                        }
+                    }
+                }
+                if model.effectiveAssignment(for: screen.key)?.rotation != nil {
                     Divider()
                     Button("Next Wallpaper") { model.nextWallpaper(on: screen.key) }
                     Button("Stop Rotation") { model.stopRotation(on: screen.key) }
@@ -29,6 +40,9 @@ public struct MenuBarContent: View {
                     Divider()
                     Button("Show System Wallpaper") { model.clearAssignment(for: screen.key) }
                 }
+            }
+            if let space = model.spaces(on: screen.key)?.currentSpace, model.supportsSpaces {
+                Text("  \(space.name)").foregroundStyle(.secondary)
             }
             if let position = model.rotationPosition(for: screen.key) {
                 Text("  Rotating \(position.current) of \(position.count)").foregroundStyle(.secondary)

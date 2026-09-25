@@ -19,13 +19,13 @@ struct CoordinatorHarness {
     let coordinator: PlaybackCoordinator
     let posterDir = FileManager.default.temporaryDirectory.appendingPathComponent("owcoord-\(UUID())")
 
-    init(displays: [String] = ["A"]) {
+    init(displays: [String] = ["A"], spaces: SpaceMonitor? = nil) {
         _ = NSApplication.shared
         screens.screens = displays.enumerated().map { FakeScreens.screen($1, x: CGFloat($0) * 320) }
         let monitor = PowerMonitor(windows: windows, power: power, analyzer: FullscreenAnalyzer(ownPID: 1), pollInterval: 60)
         coordinator = PlaybackCoordinator(
             displays: DisplayManager(provider: screens, debounce: .milliseconds(1)), power: monitor, factory: factory,
-            posters: PosterSync(setter: setter, directory: posterDir), audio: audio
+            posters: PosterSync(setter: setter, directory: posterDir), audio: audio, spaces: spaces
         )
     }
 
