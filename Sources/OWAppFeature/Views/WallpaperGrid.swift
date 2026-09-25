@@ -52,7 +52,7 @@ struct WallpaperCell: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 8).fill(.quaternary)
                 if let thumbnail, let image = NSImage(contentsOf: thumbnail) {
-                    Image(nsImage: image).resizable().aspectRatio(contentMode: .fill)
+                    Image(nsImage: image).resizable().scaledToFill()
                 } else {
                     Image(systemName: TypeStyle.symbol(wallpaper.type)).font(.largeTitle).foregroundStyle(.secondary)
                 }

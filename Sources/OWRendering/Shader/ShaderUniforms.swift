@@ -54,8 +54,14 @@ public struct ShaderUniforms: Equatable, Sendable {
     /// `iDate`: year, month, day, seconds since midnight (Shadertoy convention).
     public static func dateVector(_ date: Date, calendar: Calendar = .current) -> SIMD4<Float> {
         let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second, .nanosecond], from: date)
-        let seconds = Float((parts.hour ?? 0) * 3600 + (parts.minute ?? 0) * 60 + (parts.second ?? 0))
-            + Float(parts.nanosecond ?? 0) / 1e9
-        return SIMD4(Float(parts.year ?? 0), Float(parts.month ?? 1) - 1, Float(parts.day ?? 1), seconds)
+        let hours: Int = parts.hour ?? 0
+        let minutes: Int = parts.minute ?? 0
+        let wholeSeconds: Int = hours * 3600 + minutes * 60 + (parts.second ?? 0)
+        let fraction: Float = Float(parts.nanosecond ?? 0) / 1e9
+        let seconds: Float = Float(wholeSeconds) + fraction
+        let year: Float = Float(parts.year ?? 0)
+        let month: Float = Float(parts.month ?? 1) - 1
+        let day: Float = Float(parts.day ?? 1)
+        return SIMD4<Float>(year, month, day, seconds)
     }
 }

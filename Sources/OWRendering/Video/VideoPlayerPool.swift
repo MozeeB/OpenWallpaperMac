@@ -49,6 +49,7 @@ public struct PreparedVideo: @unchecked Sendable {
 /// at least one owner wants playback and is released when the last owner leaves.
 @MainActor
 public final class VideoPlayerPool {
+    @MainActor
     final class Entry {
         let player: AVQueuePlayer
         let prepared: PreparedVideo

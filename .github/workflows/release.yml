@@ -37,7 +37,7 @@ jobs:
 
       - uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '26'  # Swift 6.2+ SDK required; never fall back to the 16.x default
 
       - name: Resolve version
         id: version
