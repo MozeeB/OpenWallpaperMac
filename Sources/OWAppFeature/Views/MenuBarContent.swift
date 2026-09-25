@@ -31,8 +31,18 @@ public struct MenuBarContent: View {
                         }
                     }
                 }
-                if model.effectiveAssignment(for: screen.key)?.rotation != nil {
+                if let assignment = model.effectiveAssignment(for: screen.key), let rotation = assignment.rotation {
                     Divider()
+                    Menu("Switch Every (\(Rotation.label(for: rotation.interval)))") {
+                        ForEach(Rotation.presetIntervals, id: \.self) { interval in
+                            Button(Rotation.label(for: interval) + (interval == rotation.interval ? "  (current)" : "")) {
+                                model.updateRotation(in: assignment.slot) { $0.with(interval: interval) }
+                            }
+                        }
+                    }
+                    Button(rotation.shuffle ? "Play in Order" : "Shuffle") {
+                        model.updateRotation(in: assignment.slot) { $0.with(shuffle: !rotation.shuffle) }
+                    }
                     Button("Next Wallpaper") { model.nextWallpaper(on: screen.key) }
                     Button("Stop Rotation") { model.stopRotation(on: screen.key) }
                 }

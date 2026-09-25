@@ -19,6 +19,30 @@ public struct Rotation: Codable, Sendable, Equatable {
         self.shuffle = shuffle
     }
 
+    public func with(interval: TimeInterval? = nil, shuffle: Bool? = nil, items: [WallpaperID]? = nil) -> Rotation {
+        Rotation(items: items ?? self.items, interval: interval ?? self.interval, shuffle: shuffle ?? self.shuffle)
+    }
+
+    /// Moves the item at `index` by `offset` positions (clamped to the list).
+    public func moving(at index: Int, by offset: Int) -> Rotation {
+        guard items.indices.contains(index) else { return self }
+        var reordered = items
+        let item = reordered.remove(at: index)
+        reordered.insert(item, at: min(max(index + offset, 0), reordered.count))
+        return with(items: reordered)
+    }
+
+    public func removing(_ id: WallpaperID) -> Rotation { with(items: items.filter { $0 != id }) }
+
+    public func adding(_ ids: [WallpaperID]) -> Rotation { with(items: items + ids) }
+
+    /// Splits an interval into the largest whole unit for display in a custom field (90 s stays seconds).
+    public static func split(_ interval: TimeInterval) -> (value: Double, unit: Unit) {
+        if interval >= 3600, interval.truncatingRemainder(dividingBy: 360) == 0 { return (interval / 3600, .hours) }
+        if interval >= 60, interval.truncatingRemainder(dividingBy: 60) == 0 { return (interval / 60, .minutes) }
+        return (interval, .seconds)
+    }
+
     /// Keeps only wallpapers that still exist; nil when fewer than two remain.
     public func pruned(keeping ids: Set<WallpaperID>) -> Rotation? {
         let kept = items.filter(ids.contains)

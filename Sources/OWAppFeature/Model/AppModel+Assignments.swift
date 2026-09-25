@@ -55,6 +55,20 @@ extension AppModel {
         return coordinator.rotationPosition(for: display)
     }
 
+    /// Wallpapers on screen or in a rotation that is on screen, on any display.
+    public var activeWallpaperIDs: Set<WallpaperID> {
+        Set(displays.compactMap { effectiveAssignment(for: $0.key) }.flatMap(\.wallpapers))
+    }
+
+    /// Where a wallpaper is in use right now, e.g. ["Showing on DELL", "In rotation on Built-in"].
+    public func activeLocations(for id: WallpaperID) -> [String] {
+        displays.compactMap { screen in
+            guard let assignment = effectiveAssignment(for: screen.key), assignment.wallpapers.contains(id) else { return nil }
+            if assignment.rotation == nil { return "On \(screen.name)" }
+            return activeWallpaper(for: screen.key)?.id == id ? "Showing on \(screen.name)" : "In rotation on \(screen.name)"
+        }
+    }
+
     // MARK: Assign
 
     /// Assigns to one display (or one of its Spaces), or to every connected display when `display` is nil.
@@ -98,6 +112,28 @@ extension AppModel {
             space: assignment.space
         )
         commit(state.with(assignments: state.assignments.map { $0.slot == assignment.slot ? single : $0 }))
+    }
+
+    /// Edits a running rotation in place (interval, shuffle, order, items) without restarting it.
+    public func updateRotation(in slot: AssignmentSlot, _ transform: (Rotation) -> Rotation) {
+        commit(state.with(assignments: LibraryIndex.updatingRotation(in: slot, transform, assignments: state.assignments)))
+    }
+
+    /// Turns a single-wallpaper slot into a rotation with the given extra wallpapers.
+    public func makeRotation(in slot: AssignmentSlot, adding ids: [WallpaperID]) {
+        guard let current = state.assignments.assignment(in: slot) else { return }
+        setRotation(current.wallpapers + ids, interval: Rotation.presetIntervals[0], shuffle: false,
+                    display: slot.display, space: slot.space)
+    }
+
+    /// Every slot of a display that has an assignment: the default first, then Spaces in desktop order.
+    public func slots(on display: DisplayKey) -> [(slot: AssignmentSlot, title: String, assignment: DisplayAssignment)] {
+        var result: [(AssignmentSlot, String, DisplayAssignment)] = []
+        if let base = assignment(for: display) {
+            result.append((base.slot, supportsSpaces ? "All Spaces" : "This display", base))
+        }
+        result += spaceAssignments(on: display).map { ($0.assignment.slot, "\($0.space.name) only", $0.assignment) }
+        return result
     }
 
     /// Jumps to the next wallpaper of the rotation showing on a display.

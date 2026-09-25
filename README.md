@@ -42,6 +42,10 @@ open build/DerivedData/Build/Products/Release/OpenWallpaperMac.app
 
 The app opens its library window and appears in the Dock, with a quick-access menu in the menu bar. Click **+** to import files or folders, then **Set on All Displays**. Closing the window keeps wallpapers running; click the Dock icon to reopen it.
 
+- **Rotate several wallpapers:** click **Select** (or Command-click / Shift-click), choose the interval, then **Rotate on All Displays** or a specific display or Space.
+- **Change a running rotation:** open **Displays & Rotations** in the sidebar to change the interval (presets or custom), shuffle, reorder, add or remove wallpapers. The same controls appear under **Active Rotations** and in the menu bar.
+- **See what is playing:** the **Active** filter lists wallpapers currently on screen, and each thumbnail shows where it is in use.
+
 ### Importing Wallpaper Engine projects
 
 Point the importer at a project folder (the one containing `project.json`, usually

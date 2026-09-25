@@ -2,14 +2,23 @@ import OWCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Main library window: filters, wallpaper grid and inspector.
+/// Sidebar destinations.
+enum SidebarItem: Hashable {
+    case all
+    case active
+    case type(WallpaperType)
+    case displays
+}
+
+/// Main library window: sidebar, wallpaper grid (or the Displays & Rotations page) and inspector.
 public struct LibraryWindow: View {
     public static let windowID = "library"
 
     @Bindable var model: AppModel
     @State private var selection: [WallpaperID] = []
     @State private var query = ""
-    @State private var typeFilter: WallpaperType?
+    @State private var sidebar: SidebarItem? = .all
+    @State private var selecting = false
     @State private var importing = false
 
     public init(model: AppModel) {
@@ -18,27 +27,32 @@ public struct LibraryWindow: View {
 
     public var body: some View {
         NavigationSplitView {
-            List(selection: $typeFilter) {
-                Label("All Wallpapers", systemImage: "square.grid.2x2").tag(WallpaperType?.none)
-                ForEach(WallpaperType.allCases, id: \.self) { type in
-                    Label(TypeStyle.title(type), systemImage: TypeStyle.symbol(type)).tag(Optional(type))
+            List(selection: $sidebar) {
+                Section("Library") {
+                    Label("All Wallpapers", systemImage: "square.grid.2x2").tag(SidebarItem.all)
+                    Label("Active", systemImage: "play.rectangle").tag(SidebarItem.active)
+                        .accessibilityIdentifier("sidebar.active")
+                    ForEach(WallpaperType.allCases, id: \.self) { type in
+                        Label(TypeStyle.title(type), systemImage: TypeStyle.symbol(type)).tag(SidebarItem.type(type))
+                    }
+                }
+                Section("Playback") {
+                    Label("Displays & Rotations", systemImage: "rectangle.on.rectangle").tag(SidebarItem.displays)
+                        .accessibilityIdentifier("sidebar.displays")
                 }
             }
-            .navigationSplitViewColumnWidth(min: 170, ideal: 190)
+            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
         } content: {
-            WallpaperGrid(model: model, items: filtered, selection: $selection)
-                .searchable(text: $query, prompt: "Search wallpapers")
-                .navigationSplitViewColumnWidth(min: 380, ideal: 560)
-        } detail: {
-            if selection.count > 1 {
-                RotationInspector(model: model, selection: selection)
-            } else if let wallpaper = model.library.first(where: { $0.id == selection.first }) {
-                InspectorView(model: model, wallpaper: wallpaper)
+            if sidebar == .displays {
+                DisplaysPage(model: model)
+                    .navigationSplitViewColumnWidth(min: 460, ideal: 620)
             } else {
-                ContentUnavailableView("No Selection", systemImage: "photo.on.rectangle", description: Text(
-                    "Import a video, web page, shader or Wallpaper Engine project. Command-click several to rotate them."
-                ))
+                WallpaperGrid(model: model, items: filtered, selection: $selection, selecting: selecting)
+                    .searchable(text: $query, prompt: "Search wallpapers")
+                    .navigationSplitViewColumnWidth(min: 380, ideal: 560)
             }
+        } detail: {
+            detail
         }
         .toolbar { toolbar }
         .fileImporter(isPresented: $importing, allowedContentTypes: ImportTypes.all, allowsMultipleSelection: true) { result in
@@ -46,20 +60,49 @@ public struct LibraryWindow: View {
             Task { await model.importItems(urls) }
         }
         .overlay(alignment: .bottom) { MessageBanner(model: model) }
-        .frame(minWidth: 900, minHeight: 540)
+        .frame(minWidth: 960, minHeight: 560)
         .onAppear { model.refreshDisplays() }
     }
 
+    @ViewBuilder
+    private var detail: some View {
+        if selection.count > 1 {
+            RotationInspector(model: model, selection: selection)
+        } else if let wallpaper = model.library.first(where: { $0.id == selection.first }) {
+            InspectorView(model: model, wallpaper: wallpaper)
+        } else {
+            ContentUnavailableView("No Selection", systemImage: "photo.on.rectangle", description: Text(
+                "Click a wallpaper to set it. Use Select (or Command-click) to pick several and rotate them."
+            ))
+        }
+    }
+
     private var filtered: [Wallpaper] {
-        model.library.filter { item in
-            (typeFilter == nil || item.type == typeFilter)
-                && (query.isEmpty || item.title.localizedCaseInsensitiveContains(query))
+        let active = model.activeWallpaperIDs
+        return model.library.filter { item in
+            let matchesSidebar: Bool
+            switch sidebar ?? .all {
+            case .all, .displays: matchesSidebar = true
+            case .active: matchesSidebar = active.contains(item.id)
+            case .type(let type): matchesSidebar = item.type == type
+            }
+            return matchesSidebar && (query.isEmpty || item.title.localizedCaseInsensitiveContains(query))
         }
     }
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItemGroup {
+            if selecting {
+                Button("Select All") { selection = filtered.map(\.id) }
+                    .accessibilityIdentifier("library.selectAll")
+                Button("Clear") { selection = [] }
+                    .disabled(selection.isEmpty)
+            }
+            Toggle(isOn: $selecting) { Label(selecting ? "Done" : "Select", systemImage: "checkmark.circle") }
+                .toggleStyle(.button)
+                .help("Select several wallpapers to rotate them")
+                .accessibilityIdentifier("library.select")
             Button { importing = true } label: { Label("Import", systemImage: "plus") }
                 .help("Import files or Wallpaper Engine project folders")
                 .accessibilityIdentifier("library.import")

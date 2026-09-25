@@ -73,6 +73,21 @@ public enum LibraryIndex {
         return clearing(slot, in: assignments) + [DisplayAssignment(display: display, wallpaper: wallpaper, space: space)]
     }
 
+    /// Edits the rotation of one slot. Fewer than two remaining items become a single wallpaper;
+    /// no items removes the assignment.
+    public static func updatingRotation(
+        in slot: AssignmentSlot, _ transform: (Rotation) -> Rotation, assignments: [DisplayAssignment]
+    ) -> [DisplayAssignment] {
+        guard let current = assignments.assignment(in: slot), let rotation = current.rotation else { return assignments }
+        let edited = transform(rotation)
+        guard let first = edited.items.first else { return clearing(slot, in: assignments) }
+        let updated = DisplayAssignment(
+            display: current.display, wallpaper: first, overrides: current.overrides, fill: current.fill,
+            rotation: edited, space: current.space
+        )
+        return assignments.map { $0.slot == slot ? updated : $0 }
+    }
+
     /// Removes the assignment of one slot (a Space-specific one, or the display default).
     public static func clearing(_ slot: AssignmentSlot, in assignments: [DisplayAssignment]) -> [DisplayAssignment] {
         assignments.filter { $0.slot != slot }

@@ -14,14 +14,16 @@ struct RotationTracker {
 
     var isActive: Bool { !entries.isEmpty }
 
-    /// Adopts new assignments. Unchanged rotations keep their position; a new item list restarts.
+    /// Adopts new assignments. Edits (interval, shuffle, reorder, add/remove) keep the wallpaper that is
+    /// showing when it is still in the list; otherwise the rotation starts from its first item.
     mutating func sync(_ assignments: [DisplayAssignment], now: Date) {
         var next: [AssignmentSlot: Entry] = [:]
         for assignment in assignments {
             let key = assignment.slot
             guard let rotation = assignment.rotation else { continue }
-            if let existing = entries[key], existing.rotation.items == rotation.items {
-                next[key] = Entry(rotation: rotation, index: existing.index, lastSwitch: existing.lastSwitch)
+            if let existing = entries[key], existing.rotation.items.indices.contains(existing.index),
+               let index = rotation.items.firstIndex(of: existing.rotation.items[existing.index]) {
+                next[key] = Entry(rotation: rotation, index: index, lastSwitch: existing.lastSwitch)
             } else {
                 next[key] = Entry(rotation: rotation, index: 0, lastSwitch: now)
             }
