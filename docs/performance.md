@@ -50,7 +50,7 @@ decoder).
 
 | Budget (per display) | Target | Result |
 |---|---|---|
-| Video app CPU | ≤ 3% | ✅ ~1.6% per display |
+| Video app CPU | ≤ 3% | ✅ ~1.6% per display (4K30 HEVC); ⚠️ ~3.5% per display for a 4K60 24.7 Mbit/s H.264 clip |
 | Shader app CPU | ≤ 2% | ⚠️ ~2.6% per display — dominated by per-frame drawable/present overhead, not shader work (1.2%) |
 | Scene app CPU | ≤ 5% | ✅ ~2.6% per display |
 | Paused | 0% | ✅ (display link stopped; unit-tested; idle measured 0.0%) |
