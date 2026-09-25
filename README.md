@@ -47,6 +47,30 @@ Point the importer at a project folder (the one containing `project.json`, usual
 library is on this Mac. Nothing is downloaded; projects are referenced in place. Each scene gets a support
 badge — *full*, *partial* (some effects skipped) or *preview only*.
 
+## Releases
+
+Download the latest DMG from [Releases](https://github.com/MozeeB/OpenWallpaperMac/releases), open it and
+drag **OpenWallpaperMac** into **Applications**.
+
+To publish a release, push a version tag. The [release workflow](.github/workflows/release.yml) runs the
+tests, builds the DMG, writes release notes from the conventional commits since the previous tag, and
+creates the GitHub Release with the DMG and its SHA-256 attached:
+
+```bash
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+Build the same DMG locally (ad-hoc signed; add `DEVELOPER_ID` and notary settings for a notarized one —
+see the header of the script):
+
+```bash
+scripts/release/make-dmg.sh
+```
+
+Without Developer ID secrets the published DMG is ad-hoc signed, so users must allow it once under
+System Settings › Privacy & Security. Add the secrets listed at the top of `release.yml` to ship signed,
+notarized builds.
+
 ## Developer tools
 
 ```bash
