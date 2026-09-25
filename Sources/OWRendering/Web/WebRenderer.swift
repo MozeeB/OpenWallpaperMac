@@ -24,6 +24,8 @@ public final class WebRenderer: NSObject, WallpaperRenderer, WKNavigationDelegat
     private var wantsAudio = false
     private var lastAudioPush: CFTimeInterval = 0
     private var loadContinuation: CheckedContinuation<Void, Never>?
+    /// Guards against overlapping `createWebView()` calls across its internal `await`.
+    private var isCreatingWebView = false
     public static let audioInterval: CFTimeInterval = 1.0 / 30
 
     override public init() {
@@ -43,6 +45,9 @@ public final class WebRenderer: NSObject, WallpaperRenderer, WKNavigationDelegat
     }
 
     private func createWebView() async {
+        guard webView == nil, !isCreatingWebView else { return }
+        isCreatingWebView = true
+        defer { isCreatingWebView = false }
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
         configuration.mediaTypesRequiringUserActionForPlayback = []
@@ -52,6 +57,8 @@ public final class WebRenderer: NSObject, WallpaperRenderer, WKNavigationDelegat
         controller.addUserScript(WKUserScript(source: WebBridgeScript.source, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         controller.add(WeakMessageHandler(self), name: WebMessage.handlerName)
         if !networkAllowed, let rules = await WebRenderer.networkBlockList() { controller.add(rules) }
+        // Torn down (or suspended) while compiling the rule list: do not resurrect a view.
+        guard root != nil, entry != nil, webView == nil else { return }
         let webView = WKWebView(frame: hostView.bounds, configuration: configuration)
         webView.autoresizingMask = [.width, .height]
         webView.navigationDelegate = self

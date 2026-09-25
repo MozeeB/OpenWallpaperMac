@@ -26,7 +26,8 @@ public final class PowerMonitor {
     private var asleep = false
     private var observers: [(NotificationCenter, any NSObjectProtocol)] = []
     private var timer: Timer?
-    private var batterySource: CFRunLoopSource?
+    /// Touched from `deinit` (nonisolated); CF run-loop source APIs are thread-safe.
+    nonisolated(unsafe) private var batterySource: CFRunLoopSource?
 
     public init(
         windows: any WindowListProviding = CGWindowListProvider(),
@@ -52,6 +53,11 @@ public final class PowerMonitor {
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
         refreshAll()
+    }
+
+    deinit {
+        // The source's context is an unretained pointer to self: invalidate before memory goes away.
+        if let batterySource { CFRunLoopSourceInvalidate(batterySource) }
     }
 
     public func stop() {

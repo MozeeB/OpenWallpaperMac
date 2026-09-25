@@ -34,6 +34,8 @@ public final class AppModel {
     @ObservationIgnored let coordinator: PlaybackCoordinator
     @ObservationIgnored let steam: SteamLibraryLocator
     @ObservationIgnored let loginItem: any LoginItemControlling
+    /// Tail of the save chain: each save awaits the previous one, so disk order matches commit order.
+    @ObservationIgnored private var lastSave: Task<Void, Never>?
 
     public init(
         store: StateStore, importer: ImportService, thumbnails: ThumbnailService, coordinator: PlaybackCoordinator,
@@ -180,13 +182,20 @@ public final class AppModel {
         state = newState
         coordinator.update(library: newState.library, assignments: newState.assignments, settings: newState.settings)
         let store = self.store
-        Task { [weak self] in
+        let previous = lastSave
+        lastSave = Task { [weak self] in
+            await previous?.value
             do {
                 try await store.save(newState)
             } catch {
                 self?.post(.error, "Could not save settings: \(error)")
             }
         }
+    }
+
+    /// Waits for every pending save (call before quitting).
+    public func flush() async {
+        await lastSave?.value
     }
 
     func post(_ level: AppMessage.Level, _ text: String) {

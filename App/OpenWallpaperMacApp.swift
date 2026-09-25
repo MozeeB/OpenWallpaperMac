@@ -30,8 +30,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { await model.bootstrap() }
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
-        model.shutdown()
+    /// Flush pending saves and restore the system wallpaper before the process exits.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        Task {
+            await model.flush()
+            model.shutdown()
+            sender.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

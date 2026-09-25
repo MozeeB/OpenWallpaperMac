@@ -89,7 +89,15 @@ struct WebRendererTests {
         #expect(webView.isHidden)
         renderer.setPlayback(.suspended)
         #expect(renderer.webView == nil)
+        // Rapid resume events must recreate exactly one web view (no leaked duplicates).
+        renderer.setPlayback(.playing(fps: 30))
+        renderer.setPlayback(.playing(fps: 30))
+        renderer.setPlayback(.playing(fps: 30))
+        #expect(try await poll { renderer.webView != nil })
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(renderer.hostView.subviews.count == 1)
         renderer.teardown()
+        #expect(renderer.hostView.subviews.isEmpty)
     }
 
     @Test("rejects missing entry and snapshot before load")

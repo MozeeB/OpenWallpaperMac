@@ -30,9 +30,11 @@ final class RenderSession {
 
     var wantsAudio: Bool { wallpaper.usesAudio && phase == .ready && playback.isPlaying }
 
+    /// Records the desired state; only calls the renderer when it is loaded and the state changed.
     func apply(playback state: PlaybackState) {
+        let changed = state != playback
         playback = state
-        guard phase == .ready else { return }
+        guard phase == .ready, changed else { return }
         renderer.setPlayback(state)
     }
 

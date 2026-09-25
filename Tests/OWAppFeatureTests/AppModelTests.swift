@@ -59,10 +59,13 @@ struct AppModelTests {
         model.clearAssignment(for: DisplayKey("B"))
         #expect(model.assignment(for: DisplayKey("B")) == nil)
 
-        #expect(await eventually { (try? Data(contentsOf: base.appendingPathComponent("state.json")))?.isEmpty == false })
+        // Rapid commits must land on disk in order: the last override wins after flush.
+        for value in 1 ... 20 { model.setOverride(.number(Double(value)), key: "speed", display: DisplayKey("A")) }
+        await model.flush()
         let reloaded = try await StateStore(fileURL: base.appendingPathComponent("state.json")).load()
-        #expect(await eventually { true })
         #expect(reloaded.library.count == 2)
+        #expect(reloaded.assignments.first { $0.display == DisplayKey("A") }?.overrides["speed"] == .number(20))
+        model.resetOverrides(display: DisplayKey("A"))
 
         model.remove(plasma.id)
         #expect(model.library.count == 1)
