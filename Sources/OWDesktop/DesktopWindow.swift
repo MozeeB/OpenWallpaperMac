@@ -64,6 +64,29 @@ public final class DesktopWindow: NSWindow {
         container.addSubview(view)
     }
 
+    /// Fades `view` in over the current content, then removes the old content and calls `completion`.
+    /// Used when a rotation switches wallpapers so there is never a black frame.
+    public func crossfade(to view: NSView, duration: TimeInterval = 0.6, completion: @escaping @MainActor () -> Void) {
+        guard let container = contentView else {
+            completion()
+            return
+        }
+        let previous = container.subviews
+        view.frame = container.bounds
+        view.autoresizingMask = [.width, .height]
+        view.alphaValue = 0
+        container.addSubview(view)
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = duration
+            view.animator().alphaValue = 1
+        }, completionHandler: {
+            MainActor.assumeIsolated {
+                previous.filter { $0 !== view }.forEach { $0.removeFromSuperview() }
+                completion()
+            }
+        })
+    }
+
     public var isVisibleOnScreen: Bool { occlusionState.contains(.visible) }
 
     override public var canBecomeKey: Bool { false }

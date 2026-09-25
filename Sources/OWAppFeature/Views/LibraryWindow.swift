@@ -7,7 +7,7 @@ public struct LibraryWindow: View {
     public static let windowID = "library"
 
     @Bindable var model: AppModel
-    @State private var selection: WallpaperID?
+    @State private var selection: [WallpaperID] = []
     @State private var query = ""
     @State private var typeFilter: WallpaperType?
     @State private var importing = false
@@ -30,11 +30,14 @@ public struct LibraryWindow: View {
                 .searchable(text: $query, prompt: "Search wallpapers")
                 .navigationSplitViewColumnWidth(min: 380, ideal: 560)
         } detail: {
-            if let wallpaper = model.library.first(where: { $0.id == selection }) {
+            if selection.count > 1 {
+                RotationInspector(model: model, selection: selection)
+            } else if let wallpaper = model.library.first(where: { $0.id == selection.first }) {
                 InspectorView(model: model, wallpaper: wallpaper)
             } else {
-                ContentUnavailableView("No Selection", systemImage: "photo.on.rectangle",
-                                       description: Text("Import a video, web page, shader or Wallpaper Engine project."))
+                ContentUnavailableView("No Selection", systemImage: "photo.on.rectangle", description: Text(
+                    "Import a video, web page, shader or Wallpaper Engine project. Command-click several to rotate them."
+                ))
             }
         }
         .toolbar { toolbar }

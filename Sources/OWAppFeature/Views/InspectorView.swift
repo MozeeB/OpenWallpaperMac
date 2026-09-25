@@ -24,7 +24,10 @@ struct InspectorView: View {
                     HStack {
                         Text(screen.name)
                         Spacer()
-                        if model.assignment(for: screen.key)?.wallpaper == wallpaper.id {
+                        if let assigned = model.assignment(for: screen.key), assigned.rotation != nil,
+                           assigned.wallpapers.contains(wallpaper.id) {
+                            Label("In rotation", systemImage: "arrow.triangle.2.circlepath").foregroundStyle(.green)
+                        } else if model.assignment(for: screen.key)?.wallpaper == wallpaper.id {
                             Label("Active", systemImage: "checkmark").foregroundStyle(.green)
                         } else {
                             Button("Set") { model.assign(wallpaper.id, to: screen.key) }
@@ -42,6 +45,7 @@ struct InspectorView: View {
                     }
                 }
             }
+            ActiveRotationsSection(model: model)
             Section {
                 Button("Remove from Library", role: .destructive) { model.remove(wallpaper.id) }
             }

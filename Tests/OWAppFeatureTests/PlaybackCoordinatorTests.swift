@@ -110,8 +110,10 @@ struct PlaybackCoordinatorTests {
         #expect(renderer.applied.last == ["speed": .number(10)], "validated and clamped")
 
         h.coordinator.update(library: [first, second], assignments: [DisplayAssignment(display: a, wallpaper: second.id)], settings: .default)
-        #expect(renderer.tornDown)
+        #expect(!renderer.tornDown, "old wallpaper stays visible while the new one loads")
         #expect(h.factory.created.last?.type == .shader)
+        #expect(await eventually { renderer.tornDown }, "old wallpaper retired after the cross-fade")
+        #expect(h.coordinator.activeWallpaper(for: a) == second.id)
 
         h.coordinator.update(library: [first, second], assignments: [], settings: .default.with(windowLevelOffset: -2))
         #expect(h.factory.created.last?.tornDown == true)

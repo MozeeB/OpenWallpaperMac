@@ -122,6 +122,49 @@ public final class AppModel {
         commit(state.with(assignments: assignments))
     }
 
+    /// Rotates `wallpapers` on one display, or on every connected display when `display` is nil.
+    public func setRotation(_ wallpapers: [WallpaperID], interval: TimeInterval, shuffle: Bool, display: DisplayKey?) {
+        let targets = display.map { [$0] } ?? displays.map(\.key)
+        let assignments = targets.reduce(state.assignments) { result, key in
+            LibraryIndex.rotating(wallpapers, interval: interval, shuffle: shuffle, on: key, in: result)
+        }
+        commit(state.with(assignments: assignments))
+    }
+
+    /// Appends a wallpaper to a display's rotation, starting one from its current wallpaper if needed.
+    public func addToRotation(_ id: WallpaperID, display: DisplayKey) {
+        guard let current = assignment(for: display) else {
+            assign(id, to: display)
+            return
+        }
+        let items = current.wallpapers.contains(id) ? current.wallpapers : current.wallpapers + [id]
+        setRotation(items, interval: current.rotation?.interval ?? Rotation.presetIntervals[0],
+                    shuffle: current.rotation?.shuffle ?? false, display: display)
+    }
+
+    /// Stops rotating on a display and keeps the wallpaper that is currently showing.
+    public func stopRotation(on display: DisplayKey) {
+        guard let assignment = assignment(for: display), assignment.rotation != nil else { return }
+        let showing = coordinator.activeWallpaper(for: display).flatMap { id in
+            assignment.wallpapers.contains(id) ? id : nil
+        } ?? assignment.wallpaper
+        let single = DisplayAssignment(
+            display: display, wallpaper: showing, overrides: assignment.overrides, fill: assignment.fill
+        )
+        commit(state.with(assignments: state.assignments.map { $0.display == display ? single : $0 }))
+    }
+
+    /// Jumps to the next wallpaper of a display's rotation.
+    public func nextWallpaper(on display: DisplayKey) {
+        coordinator.skipToNext(on: display)
+        refreshDisplays()
+    }
+
+    /// 1-based position within a display's rotation, if it has one.
+    public func rotationPosition(for display: DisplayKey) -> (current: Int, count: Int)? {
+        coordinator.rotationPosition(for: display)
+    }
+
     public func clearAssignment(for display: DisplayKey) {
         commit(state.with(assignments: state.assignments.filter { $0.display != display }))
     }

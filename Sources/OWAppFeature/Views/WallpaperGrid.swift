@@ -4,7 +4,8 @@ import SwiftUI
 struct WallpaperGrid: View {
     @Bindable var model: AppModel
     let items: [Wallpaper]
-    @Binding var selection: WallpaperID?
+    /// Ordered selection: the order clicked becomes the rotation order.
+    @Binding var selection: [WallpaperID]
 
     private let columns = [GridItem(.adaptive(minimum: 180, maximum: 260), spacing: 14)]
 
@@ -17,9 +18,12 @@ struct WallpaperGrid: View {
             }
             LazyVGrid(columns: columns, spacing: 14) {
                 ForEach(items) { wallpaper in
-                    WallpaperCell(wallpaper: wallpaper, thumbnail: model.thumbnails[wallpaper.id], selected: selection == wallpaper.id)
+                    WallpaperCell(wallpaper: wallpaper, thumbnail: model.thumbnails[wallpaper.id],
+                                  selected: selection.contains(wallpaper.id))
+                        // Command-click is matched when the click happens, not after the double-click delay.
+                        .highPriorityGesture(TapGesture().modifiers(.command).onEnded { toggle(wallpaper.id) })
                         .onTapGesture(count: 2) { model.assign(wallpaper.id, to: nil) }
-                        .onTapGesture { selection = wallpaper.id }
+                        .onTapGesture { selection = [wallpaper.id] }
                         .contextMenu { contextMenu(for: wallpaper) }
                         .accessibilityElement(children: .combine)
                         .accessibilityAddTraits(.isButton)
@@ -30,11 +34,20 @@ struct WallpaperGrid: View {
         }
     }
 
+    /// Command-click adds or removes a wallpaper from the multi-selection (a plain click selects one).
+    private func toggle(_ id: WallpaperID) {
+        selection = selection.contains(id) ? selection.filter { $0 != id } : selection + [id]
+    }
+
     @ViewBuilder
     private func contextMenu(for wallpaper: Wallpaper) -> some View {
         Button("Set on All Displays") { model.assign(wallpaper.id, to: nil) }
         ForEach(model.displays, id: \.key) { screen in
             Button("Set on \(screen.name)") { model.assign(wallpaper.id, to: screen.key) }
+        }
+        Divider()
+        ForEach(model.displays, id: \.key) { screen in
+            Button("Add to Rotation on \(screen.name)") { model.addToRotation(wallpaper.id, display: screen.key) }
         }
         Divider()
         Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([wallpaper.root]) }

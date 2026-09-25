@@ -9,9 +9,10 @@ import OWRendering
 
 /// Reconciles library + assignments + settings + power state into running renderers.
 ///
-/// Owns one `RenderSession` per display. Every input change funnels through `reconcile()`, which
-/// is idempotent: it tears down sessions whose wallpaper changed, starts missing ones, pushes
-/// property changes, and applies the power policy's playback decision to each session.
+/// Owns one visible `RenderSession` per display, plus an optional `pending` session that loads the
+/// next wallpaper of a rotation in the background and cross-fades in once ready. Every input change
+/// funnels through `reconcile()`, which is idempotent. Session start/load/fallback lives in
+/// `PlaybackCoordinator+Sessions.swift`.
 @MainActor
 public final class PlaybackCoordinator {
     public var onEvent: ((CoordinatorEvent) -> Void)?
@@ -20,12 +21,17 @@ public final class PlaybackCoordinator {
 
     let displays: DisplayManager
     let power: PowerMonitor
-    private let factory: any RendererMaking
-    private let posters: PosterSync?
+    let factory: any RendererMaking
+    let posters: PosterSync?
     private let audio: (any AudioSpectrumSource)?
     private var library: [WallpaperID: Wallpaper] = [:]
     private var assignments: [DisplayKey: DisplayAssignment] = [:]
-    private(set) var sessions: [DisplayKey: RenderSession] = [:]
+    var sessions: [DisplayKey: RenderSession] = [:]
+    /// Next wallpaper of a rotation, loading off screen.
+    var pending: [DisplayKey: RenderSession] = [:]
+    private var rotations = RotationTracker()
+    private var rotationTimer: Timer?
+    private var random = SystemRandomNumberGenerator()
     private var started = false
 
     public init(
@@ -53,8 +59,11 @@ public final class PlaybackCoordinator {
     }
 
     public func stop(restoreOriginalWallpaper: Bool) {
-        sessions.values.forEach { $0.teardown() }
+        rotationTimer?.invalidate()
+        rotationTimer = nil
+        (Array(sessions.values) + Array(pending.values)).forEach { $0.teardown() }
         sessions = [:]
+        pending = [:]
         audio?.stop()
         power.stop()
         displays.stop()
@@ -65,6 +74,8 @@ public final class PlaybackCoordinator {
     public func update(library items: [Wallpaper], assignments list: [DisplayAssignment], settings newSettings: AppSettings) {
         library = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         assignments = Dictionary(list.map { ($0.display, $0) }, uniquingKeysWith: { _, last in last })
+        rotations.sync(assignments, now: Date())
+        updateRotationTimer()
         let levelChanged = newSettings.windowLevelOffset != settings.windowLevelOffset
         settings = newSettings
         if levelChanged { displays.update(config: DesktopWindowConfig(levelOffset: newSettings.windowLevelOffset)) }
@@ -82,117 +93,67 @@ public final class PlaybackCoordinator {
 
     public func activeWallpaper(for display: DisplayKey) -> WallpaperID? { sessions[display]?.wallpaper.id }
 
+    /// 1-based position within the display's rotation, if it has one.
+    public func rotationPosition(for display: DisplayKey) -> (current: Int, count: Int)? {
+        rotations.position(for: display)
+    }
+
+    /// Shows the next wallpaper of a display's rotation now.
+    public func skipToNext(on display: DisplayKey) {
+        guard rotations.skip(display, now: Date(), using: &random) else { return }
+        reconcile()
+    }
+
     private func layoutChanged() {
         power.updateDisplays(Dictionary(uniqueKeysWithValues: displays.screens.map { ($0.key, $0.cgBounds) }))
         reconcile()
     }
 
+    /// The wallpaper a display should show now (its rotation's current item, or its single wallpaper).
+    func desiredWallpaper(for display: DisplayKey) -> Wallpaper? {
+        guard let assignment = assignments[display] else { return nil }
+        return library[rotations.wallpaper(for: assignment)]
+    }
+
     func reconcile() {
         let connected = Set(displays.screens.map(\.key))
-        for (key, session) in sessions where !connected.contains(key) || !isCurrent(session) {
-            session.teardown()
-            sessions.removeValue(forKey: key)
+        for key in Set(sessions.keys).union(pending.keys)
+        where !connected.contains(key) || desiredWallpaper(for: key) == nil {
+            clearDisplay(key)
         }
         for screen in displays.screens {
-            guard let assignment = assignments[screen.key], let wallpaper = library[assignment.wallpaper] else {
+            guard let assignment = assignments[screen.key], let wallpaper = desiredWallpaper(for: screen.key) else {
                 displays.windows[screen.key]?.host(nil)
                 continue
             }
-            let values = wallpaper.properties.resolve(assignment.overrides)
-            if let session = sessions[screen.key] {
-                if session.values != values, !session.isFallback {
-                    session.values = values
-                    session.renderer.apply(values)
-                }
-            } else {
-                startSession(on: screen, wallpaper: wallpaper, values: values, fill: assignment.fill)
-            }
+            show(wallpaper, on: screen, assignment: assignment)
         }
         applyPlayback()
     }
 
-    private func isCurrent(_ session: RenderSession) -> Bool {
-        guard let assignment = assignments[session.display], let wallpaper = library[assignment.wallpaper] else { return false }
-        if session.isFallback { return session.wallpaper.id == wallpaper.id && session.wallpaper.root == wallpaper.root }
-        return session.wallpaper == wallpaper
+    private func clearDisplay(_ key: DisplayKey) {
+        sessions.removeValue(forKey: key)?.teardown()
+        pending.removeValue(forKey: key)?.teardown()
     }
 
-    private func startSession(on screen: ScreenDescriptor, wallpaper: Wallpaper, values: PropertyValues, fill: FillMode) {
-        guard wallpaper.support != .previewOnly else {
-            startFallback(on: screen, for: wallpaper, reason: .unsupported(wallpaper.type), fill: fill)
-            return
-        }
-        switch factory.makeRenderer(for: wallpaper.type) {
-        case .success(let renderer):
-            let session = RenderSession(display: screen.key, wallpaper: wallpaper, renderer: renderer, values: values, isFallback: false)
-            launch(session, on: screen, fill: fill)
-        case .failure(let error):
-            startFallback(on: screen, for: wallpaper, reason: error, fill: fill)
-        }
-    }
-
-    private func launch(_ session: RenderSession, on screen: ScreenDescriptor, fill: FillMode) {
-        sessions[screen.key] = session
-        displays.windows[screen.key]?.host(session.renderer.hostView)
-        session.renderer.onFailure = { [weak self, weak session] error in
-            guard let self, let session else { return }
-            self.handleFailure(session, error: error, fill: fill)
-        }
-        let context = RenderContext(
-            pixelSize: screen.pixelSize, scale: screen.scale, fill: fill, renderScale: CGFloat(settings.renderScale)
-        )
-        let resolved = resolve(session)
-        session.loadTask = Task { [weak self, weak session] in
-            guard let session else { return }
-            do throws(RenderError) {
-                guard let resolved else { throw RenderError.assetMissing(session.wallpaper.root.path) }
-                try await session.renderer.load(resolved, context: context)
-                guard !Task.isCancelled else { return }
-                self?.didLoad(session)
-            } catch {
-                guard !Task.isCancelled else { return }
-                self?.handleFailure(session, error: error, fill: fill)
+    /// Keeps, updates or replaces the session on one display so it shows `wallpaper`.
+    private func show(_ wallpaper: Wallpaper, on screen: ScreenDescriptor, assignment: DisplayAssignment) {
+        let key = screen.key
+        let values = wallpaper.properties.resolve(assignment.overrides)
+        if let current = sessions[key], current.shows(wallpaper) {
+            pending.removeValue(forKey: key)?.teardown()
+            if current.values != values, !current.isFallback {
+                current.values = values
+                current.renderer.apply(values)
             }
-        }
-    }
-
-    private func resolve(_ session: RenderSession) -> ResolvedWallpaper? {
-        guard let assets = try? WallpaperResolver.assets(for: session.wallpaper) else { return nil }
-        return ResolvedWallpaper(wallpaper: session.wallpaper, assets: assets, values: session.values)
-    }
-
-    private func didLoad(_ session: RenderSession) {
-        guard sessions[session.display] === session else { return }
-        session.phase = .ready
-        session.renderer.setPlayback(session.playback)
-        let id = session.wallpaper.id
-        onEvent?(session.isFallback ? .fellBackToPreview(session.display, id) : .loaded(session.display, id))
-        updateAudio()
-        syncPoster(session)
-    }
-
-    private func handleFailure(_ session: RenderSession, error: RenderError, fill: FillMode) {
-        guard sessions[session.display] === session else { return }
-        session.phase = .failed(error)
-        onEvent?(.failed(session.display, session.wallpaper.id, error))
-        session.teardown()
-        sessions.removeValue(forKey: session.display)
-        guard !session.isFallback, let screen = displays.screens.first(where: { $0.key == session.display }) else { return }
-        startFallback(on: screen, for: session.wallpaper, reason: error, fill: fill)
-        applyPlayback()
-    }
-
-    /// Shows the wallpaper's preview image (e.g. `preview.gif`/`preview.jpg`) instead.
-    private func startFallback(on screen: ScreenDescriptor, for wallpaper: Wallpaper, reason: RenderError, fill: FillMode) {
-        guard let preview = wallpaper.preview else {
-            displays.windows[screen.key]?.host(nil)
             return
         }
-        let still = Wallpaper(id: wallpaper.id, title: wallpaper.title, type: .image, origin: wallpaper.origin,
-                              root: wallpaper.root, entry: preview, preview: preview)
-        guard case .success(let renderer) = factory.makeRenderer(for: .image) else { return }
-        let session = RenderSession(display: screen.key, wallpaper: still, renderer: renderer, values: [:], isFallback: true)
-        launch(session, on: screen, fill: fill)
+        if let loading = pending[key], loading.shows(wallpaper) { return }
+        pending.removeValue(forKey: key)?.teardown()
+        // Cross-fade from a ready wallpaper; otherwise replace directly.
+        let replaceInBackground = sessions[key]?.phase == .ready
+        if !replaceInBackground { sessions.removeValue(forKey: key)?.teardown() }
+        startSession(on: screen, wallpaper: wallpaper, values: values, fill: assignment.fill, inBackground: replaceInBackground)
     }
 
     func applyPlayback() {
@@ -204,7 +165,38 @@ public final class PlaybackCoordinator {
         updateAudio()
     }
 
-    private func updateAudio() {
+    // MARK: Rotation timer
+
+    private func updateRotationTimer() {
+        if rotations.isActive, rotationTimer == nil {
+            let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.advanceRotations(now: Date()) }
+            }
+            timer.tolerance = 0.3
+            RunLoop.main.add(timer, forMode: .common)
+            rotationTimer = timer
+        } else if !rotations.isActive {
+            rotationTimer?.invalidate()
+            rotationTimer = nil
+        }
+    }
+
+    /// Switches every display whose rotation interval elapsed while it was playing.
+    func advanceRotations(now: Date) {
+        let paused = userPaused
+        let visible = sessions
+        let switched = rotations.advance(now: now, isPlaying: { key in
+            // No visible session (e.g. a broken item without preview) must not stall the rotation.
+            visible[key].map(\.playback.isPlaying) ?? !paused
+        }, using: &random)
+        if !switched.isEmpty { reconcile() }
+    }
+
+    var isRotationTimerRunning: Bool { rotationTimer != nil }
+
+    // MARK: Audio & posters
+
+    func updateAudio() {
         guard let audio else { return }
         let wanted = settings.audioEnabled && sessions.values.contains(where: \.wantsAudio)
         if wanted, !audio.isRunning {
@@ -224,7 +216,7 @@ public final class PlaybackCoordinator {
         }
     }
 
-    private func syncPoster(_ session: RenderSession) {
+    func syncPoster(_ session: RenderSession) {
         guard settings.posterSync, let posters else { return }
         Task { [weak session] in
             guard let session, let image = try? await session.renderer.snapshot() else { return }

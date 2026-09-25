@@ -73,9 +73,15 @@ public enum AppEnvironment {
                 let item = try importer.importItem(at: URL(fileURLWithPath: assign))
                 library.append(item.with(title: assign))
             }
-            let assignments = library.first { $0.title == assign }.map { sample in
-                SystemScreenProvider().currentScreens().map { DisplayAssignment(display: $0.key, wallpaper: sample.id) }
+            let screens = SystemScreenProvider().currentScreens()
+            var assignments = library.first { $0.title == assign }.map { sample in
+                screens.map { DisplayAssignment(display: $0.key, wallpaper: sample.id) }
             } ?? []
+            // `-UITestRotate <seconds>` rotates every seeded wallpaper on every display (soak tests).
+            if let seconds = argument(after: "-UITestRotate").flatMap(TimeInterval.init), let first = library.first {
+                let rotation = Rotation(items: library.map(\.id), interval: seconds)
+                assignments = screens.map { DisplayAssignment(display: $0.key, wallpaper: first.id, rotation: rotation) }
+            }
             let fps = argument(after: "-UITestFPS").flatMap(Int.init).flatMap(FrameRateCap.init(rawValue:))
             let settings = AppSettings.default.with(frameRateCap: fps, posterSync: false)
             let state = PersistedState.empty.with(settings: settings, assignments: assignments, library: library)

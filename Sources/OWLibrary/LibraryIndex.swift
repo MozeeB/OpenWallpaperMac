@@ -33,10 +33,34 @@ public enum LibraryIndex {
         }
     }
 
-    /// Assignments that still point at existing wallpapers.
+    /// Assignments that still point at existing wallpapers; rotations drop removed items and fall back
+    /// to a single wallpaper when only one remains.
     public static func pruning(_ assignments: [DisplayAssignment], library: [Wallpaper]) -> [DisplayAssignment] {
         let ids = Set(library.map(\.id))
-        return assignments.filter { ids.contains($0.wallpaper) }
+        return assignments.compactMap { assignment in
+            let kept = assignment.wallpapers.filter(ids.contains)
+            guard let first = kept.first else { return nil }
+            let rotation = assignment.rotation?.pruned(keeping: ids)
+            return DisplayAssignment(
+                display: assignment.display, wallpaper: first, overrides: assignment.overrides,
+                fill: assignment.fill, rotation: rotation
+            )
+        }
+    }
+
+    /// Sets (or replaces) a rotation for a display. One item becomes a plain assignment.
+    public static func rotating(
+        _ wallpapers: [WallpaperID], interval: TimeInterval, shuffle: Bool, on display: DisplayKey,
+        in assignments: [DisplayAssignment]
+    ) -> [DisplayAssignment] {
+        guard let first = wallpapers.first else { return assignments.filter { $0.display != display } }
+        let rotation = Rotation(items: wallpapers, interval: interval, shuffle: shuffle)
+        let existing = assignments.first { $0.display == display }
+        let assignment = DisplayAssignment(
+            display: display, wallpaper: first, overrides: existing?.overrides ?? [:],
+            fill: existing?.fill ?? .fill, rotation: rotation
+        )
+        return assignments.filter { $0.display != display } + [assignment]
     }
 
     /// Sets (or replaces) the assignment for a display.

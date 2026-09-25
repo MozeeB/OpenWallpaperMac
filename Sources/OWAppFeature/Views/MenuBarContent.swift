@@ -20,12 +20,19 @@ public struct MenuBarContent: View {
                 ForEach(model.library) { wallpaper in
                     Button(wallpaper.title) { model.assign(wallpaper.id, to: screen.key) }
                 }
+                if model.assignment(for: screen.key)?.rotation != nil {
+                    Divider()
+                    Button("Next Wallpaper") { model.nextWallpaper(on: screen.key) }
+                    Button("Stop Rotation") { model.stopRotation(on: screen.key) }
+                }
                 if model.assignment(for: screen.key) != nil {
                     Divider()
                     Button("Show System Wallpaper") { model.clearAssignment(for: screen.key) }
                 }
             }
-            if let active = model.activeWallpaper(for: screen.key) {
+            if let position = model.rotationPosition(for: screen.key) {
+                Text("  Rotating \(position.current) of \(position.count)").foregroundStyle(.secondary)
+            } else if let active = model.activeWallpaper(for: screen.key) {
                 Text("  \(active.title)").foregroundStyle(.secondary)
             }
         }
