@@ -113,3 +113,11 @@ func eventually(timeout: Duration = .seconds(5), _ condition: () -> Bool) async 
     }
     return condition()
 }
+
+extension SanitizedPath {
+    /// Test-only: literal paths known to be valid.
+    static func fixture(_ raw: String) -> SanitizedPath {
+        guard let path = try? SanitizedPath(raw) else { fatalError("invalid fixture path \(raw)") }
+        return path
+    }
+}

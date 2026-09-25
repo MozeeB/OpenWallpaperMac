@@ -37,7 +37,7 @@ public final class MetalContext: @unchecked Sendable {
         let descriptor = MTLRenderPipelineDescriptor()
         descriptor.vertexFunction = vertexFunction
         descriptor.fragmentFunction = fragmentFunction
-        let attachment = descriptor.colorAttachments[0]!
+        guard let attachment = descriptor.colorAttachments[0] else { throw .metalUnavailable }
         attachment.pixelFormat = MetalContext.pixelFormat
         if blending {
             attachment.isBlendingEnabled = true

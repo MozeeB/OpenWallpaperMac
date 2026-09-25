@@ -54,8 +54,9 @@ public enum TextureUploader {
         descriptor.usage = .shaderRead
         guard let texture = device.makeTexture(descriptor: descriptor) else { throw .metalUnavailable }
         bitmap.pixels.withUnsafeBytes { raw in
+            guard let base = raw.baseAddress, raw.count >= bitmap.width * bitmap.height * 4 else { return }
             texture.replace(region: MTLRegionMake2D(0, 0, bitmap.width, bitmap.height), mipmapLevel: 0,
-                            withBytes: raw.baseAddress!, bytesPerRow: bitmap.width * 4)
+                            withBytes: base, bytesPerRow: bitmap.width * 4)
         }
         let size = SIMD2(Float(bitmap.width), Float(bitmap.height))
         return SceneTexture(texture: texture, imageSize: size, uvScale: SIMD2(1, 1), frames: [], storageSize: size)
@@ -99,8 +100,9 @@ public enum TextureUploader {
         guard let texture = device.makeTexture(descriptor: descriptor) else { throw .metalUnavailable }
         for (level, mip) in mipmaps.enumerated() where mip.width > 0 && mip.height > 0 {
             mip.data.withUnsafeBytes { raw in
+                guard let base = raw.baseAddress else { return }
                 texture.replace(region: MTLRegionMake2D(0, 0, mip.width, mip.height), mipmapLevel: level,
-                                withBytes: raw.baseAddress!, bytesPerRow: bytesPerRow(format, width: mip.width))
+                                withBytes: base, bytesPerRow: bytesPerRow(format, width: mip.width))
             }
         }
         let header = tex.header

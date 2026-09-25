@@ -52,6 +52,8 @@ struct PropertyControl: View {
 enum ColorConversion {
     static func rgb(_ color: Color) -> OWCore.RGBColor {
         let converted = NSColor(color).usingColorSpace(.sRGB) ?? .white
-        return OWCore.RGBColor(red: Double(converted.redComponent), green: Double(converted.greenComponent), blue: Double(converted.blueComponent))
+        return OWCore.RGBColor(
+            red: Double(converted.redComponent), green: Double(converted.greenComponent), blue: Double(converted.blueComponent)
+        )
     }
 }

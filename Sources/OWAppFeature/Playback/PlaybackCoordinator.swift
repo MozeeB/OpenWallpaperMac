@@ -138,7 +138,9 @@ public final class PlaybackCoordinator {
             guard let self, let session else { return }
             self.handleFailure(session, error: error, fill: fill)
         }
-        let context = RenderContext(pixelSize: screen.pixelSize, scale: screen.scale, fill: fill, renderScale: CGFloat(settings.renderScale))
+        let context = RenderContext(
+            pixelSize: screen.pixelSize, scale: screen.scale, fill: fill, renderScale: CGFloat(settings.renderScale)
+        )
         let resolved = resolve(session)
         session.loadTask = Task { [weak self, weak session] in
             guard let session else { return }
@@ -163,7 +165,8 @@ public final class PlaybackCoordinator {
         guard sessions[session.display] === session else { return }
         session.phase = .ready
         session.renderer.setPlayback(session.playback)
-        onEvent?(session.isFallback ? .fellBackToPreview(session.display, session.wallpaper.id) : .loaded(session.display, session.wallpaper.id))
+        let id = session.wallpaper.id
+        onEvent?(session.isFallback ? .fellBackToPreview(session.display, id) : .loaded(session.display, id))
         updateAudio()
         syncPoster(session)
     }

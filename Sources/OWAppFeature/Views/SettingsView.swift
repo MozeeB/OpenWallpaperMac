@@ -79,7 +79,10 @@ public struct SettingsView: View {
     private var audio: some View {
         Form {
             Toggle("Audio-reactive wallpapers", isOn: binding(\.audioEnabled) { $0.with(audioEnabled: $1) })
-            Text("Captures system audio output only while an audio-reactive wallpaper is playing. macOS asks for permission the first time (System Audio Recording). Audio never leaves your Mac.")
+            Text("""
+            Captures system audio output only while an audio-reactive wallpaper is playing. \
+            macOS asks for permission the first time (System Audio Recording). Audio never leaves your Mac.
+            """)
                 .font(.caption).foregroundStyle(.secondary)
         }
         .formStyle(.grouped)

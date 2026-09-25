@@ -1,0 +1,80 @@
+name: OpenWallpaperMac
+options:
+  bundleIdPrefix: io.github.openwallpapermac
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+
+packages:
+  OpenWallpaperMacKit:
+    path: .
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  OpenWallpaperMac:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - "Info.plist"
+          - "*.entitlements"
+    dependencies:
+      - package: OpenWallpaperMacKit
+        product: OWAppFeature
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: OpenWallpaperMac
+        CFBundleName: OpenWallpaperMac
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSApplicationCategoryType: public.app-category.utilities
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        LSUIElement: true
+        NSHumanReadableCopyright: "MIT License. Not affiliated with Wallpaper Engine or Valve."
+        NSAudioCaptureUsageDescription: "OpenWallpaperMac listens to your Mac's audio output so audio-reactive wallpapers can move with your music. Audio never leaves your Mac."
+    entitlements:
+      path: App/OpenWallpaperMac.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.openwallpapermac.app
+        PRODUCT_NAME: OpenWallpaperMac
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        DEVELOPMENT_TEAM: ""
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+
+  OpenWallpaperMacUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: [UITests]
+    dependencies:
+      - target: OpenWallpaperMac
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.openwallpapermac.uitests
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: OpenWallpaperMac
+
+schemes:
+  OpenWallpaperMac:
+    build:
+      targets:
+        OpenWallpaperMac: all
+    test:
+      targets:
+        - OpenWallpaperMacUITests

@@ -110,7 +110,10 @@ struct DesktopWindowTests {
         provider.screens = [screen("x")]
         manager.scheduleSync()
         manager.scheduleSync()
-        try await Task.sleep(for: .milliseconds(120))
+        let deadline = ContinuousClock.now + .seconds(3)
+        while !manager.windows.keys.contains(DisplayKey("x")), ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(manager.windows.keys.contains(DisplayKey("x")))
         manager.stop()
     }

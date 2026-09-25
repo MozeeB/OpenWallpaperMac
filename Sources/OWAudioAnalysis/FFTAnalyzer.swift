@@ -39,9 +39,11 @@ public final class FFTAnalyzer {
         var output = [Float](repeating: 0, count: size / 2)
         real.withUnsafeMutableBufferPointer { realPtr in
             imag.withUnsafeMutableBufferPointer { imagPtr in
-                var split = DSPSplitComplex(realp: realPtr.baseAddress!, imagp: imagPtr.baseAddress!)
+                // Buffers are allocated with size/2 ≥ 32 elements in init, so base addresses exist.
+                guard let realBase = realPtr.baseAddress, let imagBase = imagPtr.baseAddress else { return }
+                var split = DSPSplitComplex(realp: realBase, imagp: imagBase)
                 windowed.withUnsafeBufferPointer { input in
-                    input.baseAddress!.withMemoryRebound(to: DSPComplex.self, capacity: size / 2) {
+                    input.baseAddress?.withMemoryRebound(to: DSPComplex.self, capacity: size / 2) {
                         vDSP_ctoz($0, 2, &split, 1, vDSP_Length(size / 2))
                     }
                 }
@@ -50,7 +52,8 @@ public final class FFTAnalyzer {
                 let dc = abs(split.realp[0])
                 split.imagp[0] = 0
                 output.withUnsafeMutableBufferPointer { out in
-                    vDSP_zvabs(&split, 1, out.baseAddress!, 1, vDSP_Length(size / 2))
+                    guard let base = out.baseAddress else { return }
+                    vDSP_zvabs(&split, 1, base, 1, vDSP_Length(size / 2))
                 }
                 output[0] = dc
             }

@@ -50,7 +50,8 @@ public final class ShaderProgram: FrameDrawing {
         let packed = uniforms.packed()
         encoder.setRenderPipelineState(pipeline)
         packed.withUnsafeBytes { raw in
-            encoder.setFragmentBytes(raw.baseAddress!, length: raw.count, index: 0)
+            guard let base = raw.baseAddress else { return }
+            encoder.setFragmentBytes(base, length: raw.count, index: 0)
         }
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
     }

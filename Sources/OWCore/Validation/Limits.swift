@@ -56,7 +56,13 @@ public enum JSONGuard {
         var escaped = false
         for byte in data {
             if inString {
-                if escaped { escaped = false } else if byte == UInt8(ascii: "\\") { escaped = true } else if byte == UInt8(ascii: "\"") { inString = false }
+                if escaped {
+                    escaped = false
+                } else if byte == UInt8(ascii: "\\") {
+                    escaped = true
+                } else if byte == UInt8(ascii: "\"") {
+                    inString = false
+                }
                 continue
             }
             switch byte {

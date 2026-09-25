@@ -88,7 +88,7 @@ public final class AppModel {
             }
         }
         commit(state.with(library: library))
-        if imported.count > 0 { post(.info, "Imported \(imported.count) wallpaper\(imported.count == 1 ? "" : "s").") }
+        if !imported.isEmpty { post(.info, "Imported \(imported.count) wallpaper\(imported.count == 1 ? "" : "s").") }
         await loadThumbnails(for: imported)
     }
 
@@ -199,7 +199,10 @@ public final class AppModel {
             let title = state.library.first { $0.id == id }?.title ?? "Wallpaper"
             post(.warning, "\(title) could not be rendered (\(RenderErrorText.describe(error))). Showing its preview if available.")
         case .audioSilent:
-            post(.warning, "No system audio detected. If visuals should react to sound, allow OpenWallpaperMac under System Settings › Privacy & Security › Screen & System Audio Recording.")
+            post(.warning, """
+            No system audio detected. If visuals should react to sound, allow OpenWallpaperMac under \
+            System Settings › Privacy & Security › Screen & System Audio Recording.
+            """)
         case .audioUnavailable(let reason):
             post(.warning, "Audio capture unavailable: \(reason)")
         case .loaded, .fellBackToPreview:

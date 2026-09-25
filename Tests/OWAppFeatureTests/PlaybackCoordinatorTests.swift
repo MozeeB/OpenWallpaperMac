@@ -32,7 +32,7 @@ struct CoordinatorHarness {
     static func wallpaper(_ type: WallpaperType = .video, audio: Bool = false, support: SupportLevel = .full, preview: String? = "preview.png") -> Wallpaper {
         Wallpaper(
             id: .random(), title: "W", type: type, origin: .native, root: FileManager.default.temporaryDirectory,
-            entry: try! SanitizedPath("entry"), preview: preview.map { try! SanitizedPath($0) },
+            entry: SanitizedPath.fixture("entry"), preview: preview.map(SanitizedPath.fixture),
             properties: [PropertyDefinition(key: "speed", label: "Speed", order: 0, kind: .slider(min: 0, max: 10, step: 1), defaultValue: .number(1))],
             support: support, usesAudio: audio
         )

@@ -153,3 +153,22 @@ struct AppModelTests {
         }
     }
 }
+
+@Suite("Smoke-test seeding")
+@MainActor
+struct SeedAssignTests {
+    @Test("assigns the named sample to connected displays")
+    func assign() throws {
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent("owseed-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: base) }
+        #expect(AppEnvironment.argument(after: "-x", in: ["a", "-x", "Plasma"]) == "Plasma")
+        #expect(AppEnvironment.argument(after: "-x", in: ["a", "-x"]) == nil)
+        let store = StateStore(fileURL: base.appendingPathComponent("state.json"))
+        AppEnvironment.seedSamples(store: store, importer: ImportService(libraryRoot: base.appendingPathComponent("L"), knownEffects: []),
+                                   base: base, assign: "Plasma")
+        let state = try JSONDecoder().decode(PersistedState.self, from: Data(contentsOf: store.fileURL))
+        let plasma = try #require(state.library.first { $0.title == "Plasma" })
+        #expect(state.assignments.allSatisfy { $0.wallpaper == plasma.id })
+        #expect(state.assignments.count == NSScreen.screens.count)
+    }
+}

@@ -90,8 +90,11 @@ public final class SceneDrawer: FrameDrawing {
             uvRect: node.texture.uvRect(at: time), effect: effect, time: time
         )
         encoder.setRenderPipelineState(pipelines.layerPipeline(node.blending))
-        uniforms.withUnsafeBytes { encoder.setVertexBytes($0.baseAddress!, length: $0.count, index: 0) }
-        uniforms.withUnsafeBytes { encoder.setFragmentBytes($0.baseAddress!, length: $0.count, index: 0) }
+        uniforms.withUnsafeBytes { raw in
+            guard let base = raw.baseAddress else { return }
+            encoder.setVertexBytes(base, length: raw.count, index: 0)
+            encoder.setFragmentBytes(base, length: raw.count, index: 0)
+        }
         encoder.setFragmentTexture(node.texture.texture, index: 0)
         encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
     }
@@ -158,7 +161,10 @@ final class ParticleBufferRing {
         let buffer = buffers[index]
         let bytes = values.count * MemoryLayout<Float>.stride
         guard bytes <= buffer.length else { return nil }
-        values.withUnsafeBytes { buffer.contents().copyMemory(from: $0.baseAddress!, byteCount: bytes) }
+        values.withUnsafeBytes { raw in
+            guard let base = raw.baseAddress else { return }
+            buffer.contents().copyMemory(from: base, byteCount: bytes)
+        }
         return buffer
     }
 }
